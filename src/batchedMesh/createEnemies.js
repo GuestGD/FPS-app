@@ -10,7 +10,7 @@ const glbLoaded = {};
 const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
-const animLodDistance = new THREE.Vector2(8000, 15000);
+const animLodDistance = new THREE.Vector2(9000, 15000);
 
 export async function createEnemies(scene, renderer, instancesPerUnit) {
   // ==============================================
