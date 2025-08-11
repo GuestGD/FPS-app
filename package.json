@@ -9,6 +9,6 @@
   },
   "scripts": {
     "build": "vite build",
-    "deploy": "npx vite build --base=/FPS-app/ && xcopy /E /I dist ..\\deploy\\ && cd ..\\deploy && git add . && git commit -m \"deploy 0.1.7\" && git push --force origin gh-pages"
+    "deploy": "npx vite build --base=/FPS-app/ && xcopy /E /I dist ..\\deploy\\ && cd ..\\deploy && git add . && git commit -m \"deploy 0.1.8\" && git push --force origin gh-pages"
   }
 }
