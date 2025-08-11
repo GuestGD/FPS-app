@@ -1,0 +1,5 @@
+ktx create --format R8G8B8_UNORM --assign-tf linear --encode basis-lz --generate-mipmap --mipmap-filter box rocky_terrain_02_diff_1k.jpg groundDiff.ktx2
+
+ktx create --format R8G8B8A8_UNORM --assign-tf linear --encode basis-lz --generate-mipmap --mipmap-filter box rocky_terrain_02_nor_gl_1k.jpg  groundNorm.ktx2
+
+ktx create --format R8G8B8A8_UNORM  --assign-tf linear --encode uastc --uastc-quality 2 --normal-mode --generate-mipmap --mipmap-filter box rocky_terrain_02_nor_gl_1k.jpg groundNorm.ktx2
