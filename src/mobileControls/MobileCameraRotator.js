@@ -17,7 +17,6 @@ export class MobileCameraRotator {
       return;
     }
 
-    // If any required component is missing, don't initialize
     if (!options.camera || !options.rotationArea) {
       this.isValid = false;
       return;

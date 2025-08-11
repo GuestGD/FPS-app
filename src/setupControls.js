@@ -2,7 +2,6 @@ import { PointerLockControls } from "three/examples/jsm/Addons.js";
 import { JoyStick } from "./mobileControls/Joystick";
 import { MobileCameraRotator } from "./mobileControls/MobileCameraRotator";
 import { isMobile } from "./mobileControls/isMobile";
-import * as THREE from "three";
 
 const keys = {};
 let joystick, joyData, cameraRotator, pointerLock, mobileDevice;
@@ -20,7 +19,9 @@ export function setupControls(camera, renderer) {
       document.body.requestFullscreen();
     }
   };
-  ////
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
 
   document.addEventListener("keydown", (e) => {
     keys[e.code] = true;
@@ -93,14 +94,7 @@ export function updateControls(scene) {
   // TESTS
   const material = scene.userData.material;
 
-  if (keys["KeyQ"]) {
-
-  }
-
-  if (keys["KeyE"]) {
-    console.log(material);
-  }
-
   if (keys["KeyR"]) {
+    console.log(material);
   }
 }

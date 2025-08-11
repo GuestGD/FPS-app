@@ -101,7 +101,9 @@ export class BatchedMeshLod extends BatchedMesh {
     mapIndexBuf.needsUpdate = true;
     instanceAmountBuf.needsUpdate = true;
 
-    //
+    /* ------------------------------------------------------------- */
+    /* ------------------------------------------------------------- */
+    
     this.lodInfo = {};
 
     for (const [unitName, { distLod, instancesAmount }] of Object.entries(

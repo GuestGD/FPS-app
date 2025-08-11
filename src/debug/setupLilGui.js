@@ -1,7 +1,7 @@
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
 export async function setupLilGui() {
-  const params = { enemiesAmount: 100 };
+  const params = { enemiesAmount: 20 };
   const gui = new GUI().title("Scene setup");
 
   const dom = gui.domElement;
