@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "three": "^0.178.0"
+  },
+  "devDependencies": {
+    "rollup-plugin-gzip": "^4.1.1",
+    "vite": "^7.0.6",
+    "vite-plugin-compression": "^0.5.1"
+  },
+  "scripts": {
+    "build": "vite build",
+    "deploy": "npm run build && xcopy /E /I dist ../deploy/ && cd ../deploy && git add . && git commit -m 'deploy' && git push origin gh-pages"
+  }
+}
