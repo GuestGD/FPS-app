@@ -1,5 +1,16 @@
 import * as THREE from "three";
 
+const _stateEvent = {
+  unitName: "",
+  instanceId: 0,
+  matrix: new THREE.Matrix4(),
+  distance: 0,
+  stateName: "",
+  distanceState: "",
+  animName: "",
+  speed: 0,
+};
+
 export class SkinnedBatchMaterial {
   constructor({ maps, unitsData, animLodDistance }) {
     this.material = new THREE.MeshStandardMaterial({
@@ -13,7 +24,7 @@ export class SkinnedBatchMaterial {
 
     this.material.update = this;
 
-    this.textures = maps;
+    this.textures = { ...maps };
     this.unitsData = unitsData;
     this.animLodDistance = animLodDistance;
 
@@ -23,7 +34,6 @@ export class SkinnedBatchMaterial {
     this.materialData = {};
 
     this.frameEvents = {};
-    this.patterns = {};
 
     this._unitsSetup(this.unitsData);
 
@@ -31,9 +41,18 @@ export class SkinnedBatchMaterial {
     this._createInstancesManageTexture(unitsData);
 
     this._transitionEvents = {};
+
+    this.material.defines = {
+      USE_NORMAL_MAP: !!this.textures.normalMapsArray,
+      USE_TANGENT: !!this.textures.normalMapsArray,
+      USE_ROUGHNESS_MAP: !!this.textures.ormMapsArray,
+      USE_METALNESS_MAP: !!this.textures.ormMapsArray,
+      USE_AO_MAP: !!this.textures.ormMapsArray,
+    };
   }
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
+  // ==============================================
+  //              PRIVATE METHODS
+  // ==============================================
   _unitsSetup(unitsData) {
     Object.entries(unitsData).forEach(([name, data], unitIndex) => {
       const { rawMatrices, boneInverses, bonesAmount } = data;
@@ -136,14 +155,47 @@ export class SkinnedBatchMaterial {
     this.instanceManageTexture = instanceManageTexture;
     this.instanceManageArr = instanceManageArr;
   }
+
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
+  _triggerTransitionEvent(unitName, animName, frame, callback) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return;
+    }
+
+    if (!this.materialData[unitName].animations?.[animName]) {
+      console.warn(`Animation ${animName} not found for unit ${unitName}`);
+      return;
+    }
+
+    const anim = this.materialData[unitName].animations[animName];
+    const clampedFrame = Math.min(Math.max(0, frame), anim.frameCount - 2);
+
+    // Create private event key with instance-specific prefix
+    const eventKey = `_transition|${unitName}|${animName}|${clampedFrame}`;
+    this._transitionEvents[eventKey] = callback;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  _removeTransitionEvent(unitName, animName, frame) {
+    const eventKey = `_transition|${unitName}|${animName}|${frame}`;
+    delete this._transitionEvents[eventKey];
+  }
+
+  // ==============================================
+  //              MAIN SHADER
+  // ==============================================
+
   _patchMaterial() {
     const boneAtlasOne = Object.values(this.materialData)[0].boneAtlas;
     const boneAtlasTwo = Object.values(this.materialData)[1].boneAtlas;
     const boneAtlasThree = Object.values(this.materialData)[2].boneAtlas;
 
     this.material.onBeforeCompile = (shader) => {
+      Object.assign(shader.defines, this.material.defines);
+
       shader.uniforms.instanceManageTexture = {
         value: this.instanceManageTexture,
       };
@@ -171,7 +223,18 @@ export class SkinnedBatchMaterial {
       shader.uniforms.animLodDistance = {
         value: this.animLodDistance || new THREE.Vector2(2000, 5000),
       };
-      shader.uniforms.maps = { value: this.textures };
+
+      shader.uniforms.maps = { value: this.textures.mapsArray };
+      shader.uniforms.normalMaps = { value: this.textures.normalMapsArray };
+      shader.uniforms.ormMapsArray = {
+        value: this.textures.ormMapsArray,
+      };
+      shader.uniforms.normalScale = {
+        value: new THREE.Vector2(1.0, 1.0),
+      };
+      shader.uniforms.aoMapIntensity = {
+        value: 1.0,
+      };
 
       shader.vertexShader =
         `
@@ -368,6 +431,12 @@ export class SkinnedBatchMaterial {
         `#include <map_pars_fragment>`,
         `
          uniform sampler2DArray maps;
+         uniform sampler2DArray normalMaps;
+         uniform sampler2DArray ormMapsArray;
+
+         uniform vec2 normalScale;
+         uniform float aoMapIntensity;
+
          varying float vMapIndex;
          varying vec2 vUv;
         `
@@ -379,40 +448,86 @@ export class SkinnedBatchMaterial {
          diffuseColor *= texture(maps, vec3(vUv.x, vUv.y, vMapIndex));
         `
       );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `#include <normal_fragment_begin>`,
+        `
+        float faceDirection = gl_FrontFacing ? 1.0 : - 1.0;
+
+        vec3 normal = normalize( vNormal );
+
+        #ifdef DOUBLE_SIDED
+          normal *= faceDirection;
+        #endif
+
+        #ifdef USE_NORMAL_MAP 
+          mat3 tbn = mat3( normalize( vTangent ), normalize( vBitangent ), normal );
+
+          #if defined( DOUBLE_SIDED ) && ! defined( FLAT_SHADED )
+
+            tbn[0] *= faceDirection;
+            tbn[1] *= faceDirection;
+
+          #endif
+        #endif
+
+        vec3 nonPerturbedNormal = normal;
+        `
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `#include <normal_fragment_maps>`,
+        `
+        #ifdef USE_NORMAL_MAP 
+          vec3 mapN = texture( normalMaps, vec3(vUv.x, vUv.y, vMapIndex)).xyz * 2.0 - 1.0;
+          mapN.xy *= normalScale;
+
+          normal = normalize( tbn * mapN );
+        #endif
+        `
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `#include <roughnessmap_fragment>`,
+        `
+        float roughnessFactor = roughness;
+        float metalnessFactor = metalness;
+
+        #if defined(USE_ROUGHNESS_MAP) || defined(USE_METALNESS_MAP)
+          vec4 texelRoughness = texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex));
+
+          // reads channel R - ao, G- rough, B - metal, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
+          roughnessFactor *= texelRoughness.g;
+          metalnessFactor *= texelRoughness.b;
+        #endif
+        `
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `#include <metalnessmap_fragment>`,
+        `
+        `
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `#include <aomap_fragment>`,
+        `
+        #ifdef USE_AO_MAP 
+          float ambientOcclusion = ( texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex)).r - 1.0 ) * aoMapIntensity + 1.0;
+          reflectedLight.indirectDiffuse *= ambientOcclusion;
+        #endif     
+        `
+      );
     };
   }
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
 
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  _triggerTransitionEvent(unitName, animName, frame, callback) {
-    if (!this.materialData[unitName]) {
-      console.warn(`Unit ${unitName} not found`);
-      return;
-    }
-
-    if (!this.materialData[unitName].animations?.[animName]) {
-      console.warn(`Animation ${animName} not found for unit ${unitName}`);
-      return;
-    }
-
-    const anim = this.materialData[unitName].animations[animName];
-    const clampedFrame = Math.min(Math.max(0, frame), anim.frameCount - 2);
-
-    // Create private event key with instance-specific prefix
-    const eventKey = `_transition|${unitName}|${animName}|${clampedFrame}`;
-    this._transitionEvents[eventKey] = callback;
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  _removeTransitionEvent(unitName, animName, frame) {
-    const eventKey = `_transition|${unitName}|${animName}|${frame}`;
-    delete this._transitionEvents[eventKey];
-  }
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
+  // ==============================================
+  //              BASIC METHODS
+  // ==============================================
   setAnimationFrames(
     unitName,
     animName,
@@ -444,7 +559,8 @@ export class SkinnedBatchMaterial {
       transitions: {},
     };
   }
-
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
   setAnimationTransitions(unitName, animName, transitions = {}) {
     if (!this.materialData[unitName]?.animations?.[animName]) {
       console.warn(
@@ -567,6 +683,182 @@ export class SkinnedBatchMaterial {
       this.playAnimation(unitName, i, animName, mode, speed);
     }
   }
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  stopAnimation(unitName, localInstanceId) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return;
+    }
+
+    const instanceDataTexture = this.instanceManageTexture;
+    const instanceDataArr = this.instanceManageArr;
+
+    const unitOffset =
+      this.materialData[unitName].unitIndex *
+      this.unitsData[unitName].instancesAmount *
+      4;
+    const instanceOffset = localInstanceId * 4;
+    const finalOffset = unitOffset + instanceOffset;
+
+    // Reset animation data in the texture
+    instanceDataArr[finalOffset] = 0; // current frame
+    instanceDataArr[finalOffset + 1] = 0; // next frame
+    instanceDataArr[finalOffset + 2] = 0; // mix factor
+    instanceDataArr[finalOffset + 3] = 0; // speed
+
+    // Remove the instance state if it exists
+    if (this.materialData[unitName].instanceStates) {
+      delete this.materialData[unitName].instanceStates[localInstanceId];
+    }
+
+    instanceDataTexture.needsUpdate = true;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  stopAnimationBatched(unitName, startInstanceId, endInstanceId) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return;
+    }
+
+    // Validate instance range
+    const maxInstances = this.unitsData[unitName].instancesAmount;
+    if (startInstanceId < 0 || startInstanceId > endInstanceId) {
+      console.warn(
+        `Invalid instance range: ${startInstanceId}-${endInstanceId}`
+      );
+      return;
+    }
+
+    let lastInstance = endInstanceId;
+    if (endInstanceId >= maxInstances) lastInstance = maxInstances - 1;
+
+    // Stop animation for each instance in the range
+    for (let i = startInstanceId; i <= lastInstance; i++) {
+      this.stopAnimation(unitName, i);
+    }
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  pauseAnimation(unitName, localInstanceId) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return;
+    }
+
+    // Get the current animation state
+    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
+    if (!state) {
+      console.warn(`No active animation for instance ${localInstanceId}`);
+      return;
+    }
+
+    // Set speed to 0 while preserving all other state
+    const instanceDataTexture = this.instanceManageTexture;
+    const instanceDataArr = this.instanceManageArr;
+
+    const unitOffset =
+      this.materialData[unitName].unitIndex *
+      this.unitsData[unitName].instancesAmount *
+      4;
+    const instanceOffset = localInstanceId * 4;
+    const finalOffset = unitOffset + instanceOffset;
+
+    // Keep current frame data but set speed to 0
+    instanceDataArr[finalOffset + 3] = 0;
+
+    // Update the instance state
+    state.speed = 0;
+
+    // Update the texture
+    instanceDataTexture.needsUpdate = true;
+  }
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  resumeAnimation(unitName, localInstanceId, newSpeed = 1) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return;
+    }
+
+    // Get the current animation state
+    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
+    if (!state) {
+      console.warn(`No paused animation for instance ${localInstanceId}`);
+      return;
+    }
+
+    const instanceDataTexture = this.instanceManageTexture;
+    const instanceDataArr = this.instanceManageArr;
+
+    const unitOffset =
+      this.materialData[unitName].unitIndex *
+      this.unitsData[unitName].instancesAmount *
+      4;
+    const instanceOffset = localInstanceId * 4;
+    const finalOffset = unitOffset + instanceOffset;
+
+    // Restore speed
+    instanceDataArr[finalOffset + 3] = newSpeed;
+
+    // Update the instance state
+    state.speed = newSpeed;
+
+    // Update the texture
+    instanceDataTexture.needsUpdate = true;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  isPaused(unitName, localInstanceId) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return false;
+    }
+
+    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
+    if (!state) return false;
+
+    // Speed 0 = paused
+    return state.speed === 0 && !!state.animName;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  isStopped(unitName, localInstanceId) {
+    if (!this.materialData[unitName]) return true;
+
+    const unitOffset =
+      this.materialData[unitName].unitIndex *
+      this.unitsData[unitName].instancesAmount *
+      4;
+    const instanceOffset = localInstanceId * 4;
+    const finalOffset = unitOffset + instanceOffset;
+
+    const arr = this.instanceManageArr;
+    // All animation fields zeroed out ⇒ stopped
+    return (
+      arr[finalOffset] === 0 &&
+      arr[finalOffset + 1] === 0 &&
+      arr[finalOffset + 2] === 0 &&
+      arr[finalOffset + 3] === 0
+    );
+  }
+
+  /* ------------------------------------------------------------- */
+  /* ------------------------------------------------------------- */
+  isPlaying(unitName, localInstanceId) {
+    if (!this.materialData[unitName]) {
+      console.warn(`Unit ${unitName} not found`);
+      return false;
+    }
+
+    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
+    return !!(state && state.animName && state.speed > 0);
+  }
 
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
@@ -646,7 +938,7 @@ export class SkinnedBatchMaterial {
 
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
-  triggerEvent(unitName, animName, frame, callback) {
+  createEvent(unitName, animName, frame, callback) {
     if (!this.materialData[unitName]) {
       console.warn(`Unit ${unitName} not found`);
       return;
@@ -676,12 +968,6 @@ export class SkinnedBatchMaterial {
 
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
-
-  get isMaterial() {
-    return true;
-  }
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
   getMaterial() {
     return this.material;
   }
@@ -705,197 +991,10 @@ export class SkinnedBatchMaterial {
 
     this.batchedMesh = batchedMesh;
   }
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  setTransitionPattern(
-    unitName,
-    minDistance = 0,
-    maxDistance = 1,
-    animationName,
-    mode = "loop",
-    speed = 1,
-    transitionClipName = null,
-    transitionClipSpeed = 1
-  ) {
-    if (!this.batchedMesh)
-      return console.warn("setPattern Error - Set batched mesh first!");
 
-    if (
-      !this.materialData ||
-      !this.materialData[unitName] ||
-      !unitName ||
-      !animationName ||
-      maxDistance <= minDistance
-    )
-      return;
-
-    if (!this.materialData[unitName].instanceStates)
-      this.materialData[unitName].instanceStates = {};
-
-    const batchedMesh = this.batchedMesh;
-
-    if (
-      !batchedMesh.lodInfo ||
-      !batchedMesh.lodInfo[unitName] ||
-      !batchedMesh.lodInfo[unitName].unitDist
-    )
-      return;
-
-    if (!this.patterns[unitName]) this.patterns[unitName] = {};
-    if (!this.patterns[unitName].animations)
-      this.patterns[unitName].animations = [];
-    if (!this.patterns[unitName].minDistances)
-      this.patterns[unitName].minDistances = [];
-    if (!this.patterns[unitName].maxDistances)
-      this.patterns[unitName].maxDistances = [];
-    if (!this.patterns[unitName].modes) this.patterns[unitName].modes = [];
-    if (!this.patterns[unitName].speeds) this.patterns[unitName].speeds = [];
-    if (!this.patterns[unitName].transitionClips)
-      this.patterns[unitName].transitionClips = [];
-    if (!this.patterns[unitName].transitionSpeeds)
-      this.patterns[unitName].transitionSpeeds = [];
-
-    this.patterns[unitName].animations.push(animationName);
-    this.patterns[unitName].minDistances.push(minDistance);
-    this.patterns[unitName].maxDistances.push(maxDistance);
-    this.patterns[unitName].modes.push(mode);
-    this.patterns[unitName].speeds.push(speed);
-    this.patterns[unitName].transitionClips.push(transitionClipName);
-    this.patterns[unitName].transitionSpeeds.push(transitionClipSpeed);
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  stopAnimation(unitName, localInstanceId) {
-    if (!this.materialData[unitName]) {
-      console.warn(`Unit ${unitName} not found`);
-      return;
-    }
-
-    const instanceDataTexture = this.instanceManageTexture;
-    const instanceDataArr = this.instanceManageArr;
-
-    const unitOffset =
-      this.materialData[unitName].unitIndex *
-      this.unitsData[unitName].instancesAmount *
-      4;
-    const instanceOffset = localInstanceId * 4;
-    const finalOffset = unitOffset + instanceOffset;
-
-    // Reset animation data in the texture
-    instanceDataArr[finalOffset] = 0; // current frame
-    instanceDataArr[finalOffset + 1] = 0; // next frame
-    instanceDataArr[finalOffset + 2] = 0; // mix factor
-    instanceDataArr[finalOffset + 3] = 0; // speed
-
-    // Remove the instance state if it exists
-    if (this.materialData[unitName].instanceStates) {
-      delete this.materialData[unitName].instanceStates[localInstanceId];
-    }
-
-    // Update the texture
-    instanceDataTexture.needsUpdate = true;
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  stopAnimationBatched(unitName, startInstanceId, endInstanceId) {
-    if (!this.materialData[unitName]) {
-      console.warn(`Unit ${unitName} not found`);
-      return;
-    }
-
-    // Validate instance range
-    const maxInstances = this.unitsData[unitName].instancesAmount;
-    if (startInstanceId < 0 || startInstanceId > endInstanceId) {
-      console.warn(
-        `Invalid instance range: ${startInstanceId}-${endInstanceId}`
-      );
-      return;
-    }
-
-    let lastInstance = endInstanceId;
-    if (endInstanceId >= maxInstances) lastInstance = maxInstances - 1;
-
-    // Stop animation for each instance in the range
-    for (let i = startInstanceId; i <= lastInstance; i++) {
-      this.stopAnimation(unitName, i);
-    }
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  pauseAnimation(unitName, localInstanceId) {
-    if (!this.materialData[unitName]) {
-      console.warn(`Unit ${unitName} not found`);
-      return;
-    }
-
-    // Get the current animation state
-    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
-    if (!state) {
-      console.warn(`No active animation for instance ${localInstanceId}`);
-      return;
-    }
-
-    // Set speed to 0 while preserving all other state
-    const instanceDataTexture = this.instanceManageTexture;
-    const instanceDataArr = this.instanceManageArr;
-
-    const unitOffset =
-      this.materialData[unitName].unitIndex *
-      this.unitsData[unitName].instancesAmount *
-      4;
-    const instanceOffset = localInstanceId * 4;
-    const finalOffset = unitOffset + instanceOffset;
-
-    // Keep current frame data but set speed to 0
-    instanceDataArr[finalOffset + 3] = 0;
-
-    // Update the instance state
-    state.speed = 0;
-
-    // Update the texture
-    instanceDataTexture.needsUpdate = true;
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  resumeAnimation(unitName, localInstanceId, newSpeed = 1) {
-    if (!this.materialData[unitName]) {
-      console.warn(`Unit ${unitName} not found`);
-      return;
-    }
-
-    // Get the current animation state
-    const state = this.materialData[unitName].instanceStates?.[localInstanceId];
-    if (!state) {
-      console.warn(`No paused animation for instance ${localInstanceId}`);
-      return;
-    }
-
-    const instanceDataTexture = this.instanceManageTexture;
-    const instanceDataArr = this.instanceManageArr;
-
-    const unitOffset =
-      this.materialData[unitName].unitIndex *
-      this.unitsData[unitName].instancesAmount *
-      4;
-    const instanceOffset = localInstanceId * 4;
-    const finalOffset = unitOffset + instanceOffset;
-
-    // Restore speed
-    instanceDataArr[finalOffset + 3] = newSpeed;
-
-    // Update the instance state
-    state.speed = newSpeed;
-
-    // Update the texture
-    instanceDataTexture.needsUpdate = true;
-  }
-
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
+  // ==============================================
+  //              UPDATE LOOP METHOD
+  // ==============================================
   updateAnimations(delta) {
     const instanceDataTexture = this.instanceManageTexture;
     const instanceDataArr = this.instanceManageArr;
@@ -1024,28 +1123,76 @@ export class SkinnedBatchMaterial {
 
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
-  /* ======================> STATES* <=============================*/
+  /* ======================> STATES LOGIC <========================*/
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
-  setDistanceState(
-    unitName,
-    stateName,
-    { min = 0, max = Infinity, anim = null, mode = "loop", speed = 1 } = {}
-  ) {
-    if (!this.materialData?.[unitName] || !unitName || !stateName) return;
+  setState(unitName, instanceId, stateName) {
+    if (
+      !unitName ||
+      !instanceId ||
+      !stateName ||
+      !this.materialData?.[unitName]?.instanceStates?.[instanceId]
+    )
+      return;
 
-    this.materialData[unitName].stateTypes ??= {
-      distance: {},
-    };
+    const unitStates = this.materialData[unitName].instanceStates;
 
-    const { distance } = this.materialData[unitName].stateTypes;
+    if (!unitStates[instanceId].currentDistanceState) {
+      Object.assign(unitStates[instanceId], {
+        currentDistanceState: null,
+        currentState: "default",
+        lastDistanceState: null,
+        transitionTriggered: false,
+        transitionActive: false,
+      });
+    }
 
-    distance[stateName] = {
+    unitStates[instanceId].currentState = stateName || "";
+  }
+
+  getState(unitName, instanceId) {
+    if (
+      !unitName ||
+      !instanceId ||
+      !this.materialData?.[unitName]?.instanceStates?.[instanceId]?.currentState
+    )
+      return;
+
+    const unitState =
+      this.materialData[unitName].instanceStates[instanceId].currentState;
+
+    return unitState;
+  }
+
+  setDistanceState(unitName, config, callBack = null) {
+    if (!this.materialData?.[unitName] || !unitName || !config?.distName) {
+      console.warn("Invalid parameters for setDistanceState");
+      return;
+    }
+
+    this.materialData[unitName].stateTypes ??= { distance: {} };
+
+    const { distName, min = 0, max = Infinity, states = {} } = config;
+
+    if (Object.keys(states).length === 0) {
+      console.warn("No states defined in setDistanceState");
+      return;
+    }
+
+    const processedStates = {};
+    for (const [stateName, stateConfig] of Object.entries(states)) {
+      processedStates[stateName] = {
+        anim: stateConfig.anim,
+        mode: stateConfig.mode || "loop",
+        speed: stateConfig.speed || "1",
+      };
+    }
+
+    this.materialData[unitName].stateTypes.distance[distName] = {
       min,
       max,
-      anim,
-      mode,
-      speed,
+      states: processedStates,
+      logic: callBack,
     };
   }
 
@@ -1071,6 +1218,7 @@ export class SkinnedBatchMaterial {
     if (!unitStates[instanceId].currentDistanceState) {
       Object.assign(unitStates[instanceId], {
         currentDistanceState: null,
+        currentState: "default",
         lastDistanceState: null,
         transitionTriggered: false,
         transitionActive: false,
@@ -1113,25 +1261,60 @@ export class SkinnedBatchMaterial {
 
     const { instanceStates } = this.getDistanceState(unitName, instanceId);
 
-    const { currentDistanceState } = instanceStates;
+    const { currentDistanceState, currentState } = instanceStates;
 
     if (instanceStates) {
       const unitStates = this.materialData[unitName].stateTypes;
 
       const statesDistance = unitStates.distance;
 
-      const currentState = currentDistanceState;
-
-      if (!statesDistance?.[currentState]?.anim || !currentState) {
+      if (
+        !currentState &&
+        !statesDistance?.[currentDistanceState]?.states?.default
+      ) {
+        console.warn("Set default or any other state in setDistanceState");
         return;
       }
 
-      const finalAnimName = statesDistance[currentState].anim;
-      const finalAnimSpeed = statesDistance[currentState].speed || 0.5;
-      const finalAnimMode = statesDistance[currentState].mode || "loop";
-
       const currentAnim =
         this.materialData[unitName].instanceStates?.[instanceId]?.animName;
+
+      if (
+        !currentDistanceState ||
+        !statesDistance?.[currentDistanceState]?.states?.[currentState]?.anim
+      ) {
+        return;
+      }
+
+      const currentStateData =
+        statesDistance[currentDistanceState].states[currentState];
+
+      // setDistanceState callback is here
+      if (statesDistance[currentDistanceState].logic) {
+        const { batchedMesh } = this;
+        const matrixArray = batchedMesh?.matrices?.[unitName];
+        const offset = instanceId * 16;
+
+        _stateEvent.unitName = unitName;
+        _stateEvent.instanceId = instanceId;
+        _stateEvent.matrix.fromArray(matrixArray, offset);
+        _stateEvent.distance =
+          batchedMesh.lodInfo[unitName].unitDist[instanceId];
+        _stateEvent.distanceState = currentDistanceState || "";
+        _stateEvent.stateName = currentState || "";
+        _stateEvent.animName = currentAnim || "";
+        _stateEvent.speed =
+          this.materialData[unitName].instanceStates[instanceId]?.speed || 0;
+        _stateEvent.custom =
+          this.materialData[unitName].instanceStates[instanceId];
+
+        statesDistance[currentDistanceState].logic(_stateEvent);
+      }
+
+      // Transition logic is here
+      const finalAnimName = currentStateData.anim;
+      const finalAnimSpeed = currentStateData.speed || 0.5;
+      const finalAnimMode = currentStateData.mode || "loop";
 
       if (currentAnim === finalAnimName) return;
 

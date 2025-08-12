@@ -94,7 +94,7 @@ export async function setupScene() {
 
   const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
   groundMesh.position.y -= 100;
-  groundMesh.setRotationFromAxisAngle(new THREE.Vector3(1, 0, 0), -1.57);
+  groundMesh.setRotationFromAxisAngle(new THREE.Vector3(1, 0, 0), THREE.MathUtils.degToRad(-90));
   scene.add(groundMesh);
 
   // ==============================================

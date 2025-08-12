@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 export function setupAnimations(material, instancesPerUnit) {
   // ==============================================
   //   Soldier animations
@@ -72,26 +74,41 @@ export function setupAnimations(material, instancesPerUnit) {
     soldierIdle: "soldierRun_To_soldierIdle",
   });
 
-  material.setDistanceState("soldier", "close", {
+  material.setDistanceState("soldier", {
+    distName: "close",
     min: 0,
     max: 2000,
-    anim: "soldierFire",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "soldierFire",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
-  material.setDistanceState("soldier", "mid", {
+  material.setDistanceState("soldier", {
+    distName: "mid",
     min: 2001,
-    max: 4000,
-    anim: "soldierRun",
-    mode: "loop",
-    speed: "0.5",
+    max: 5000,
+    states: {
+      default: {
+        anim: "soldierRun",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
-  material.setDistanceState("soldier", "far", {
-    min: 4001,
+  material.setDistanceState("soldier", {
+    distName: "far",
+    min: 5001,
     max: Infinity,
-    anim: "soldierIdle",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "soldierIdle",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
 
   // ==============================================
@@ -167,26 +184,41 @@ export function setupAnimations(material, instancesPerUnit) {
     mutantPunch: "mutantRun_To_mutantPunch",
   });
 
-  material.setDistanceState("mutant", "close", {
+  material.setDistanceState("mutant", {
+    distName: "close",
     min: 0,
     max: 2000,
-    anim: "mutantPunch",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "mutantPunch",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
-  material.setDistanceState("mutant", "mid", {
+  material.setDistanceState("mutant", {
+    distName: "mid",
     min: 2001,
     max: 5000,
-    anim: "mutantRun",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "mutantRun",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
-  material.setDistanceState("mutant", "far", {
+  material.setDistanceState("mutant", {
+    distName: "far",
     min: 5001,
     max: Infinity,
-    anim: "mutantDance",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "mutantDance",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
 
   // ==============================================
@@ -262,32 +294,95 @@ export function setupAnimations(material, instancesPerUnit) {
     zombiePunch: "zombieRun_To_zombiePunch",
   });
 
-  material.setDistanceState("zombie", "close", {
-    min: 0,
-    max: 2000,
-    anim: "zombiePunch",
-    mode: "loop",
-    speed: "0.5",
-  });
-  material.setDistanceState("zombie", "mid", {
+  material.setDistanceState(
+    "zombie",
+    {
+      distName: "close",
+      min: 0,
+      max: 2000,
+      states: {
+        default: {
+          anim: "zombiePunch",
+          mode: "loop",
+          speed: "0.5",
+        },
+        dead: {
+          anim: "zombieIdle",
+          mode: "once",
+          speed: "0.5",
+        },
+        anyOther: {
+          anim: "zombiePunch",
+          mode: "once",
+          speed: "0.5",
+        },
+      },
+    },
+    (e) => {
+      let showLog = e.show;
+      if (!showLog) {
+        showLog = true;
+        const matrix = e.matrix;
+        const position = new THREE.Vector3().setFromMatrixPosition(matrix);
+        matrix.setPosition(new THREE.Vector3(0, 0, 0));
+        material.batchedMesh.updateMatrixWorld(true);
+        setTimeout(() => {
+          showLog = false;
+          material.setState(e.unitName, e.instanceId, "dead");
+        }, 2000);
+      }
+    }
+  );
+  material.setDistanceState("zombie", {
+    distName: "mid",
     min: 2001,
     max: 5000,
-    anim: "zombieRun",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "zombieRun",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
-  material.setDistanceState("zombie", "far", {
+  material.setDistanceState("zombie", {
+    distName: "far",
     min: 5001,
     max: Infinity,
-    anim: "zombieIdle",
-    mode: "loop",
-    speed: "0.5",
+    states: {
+      default: {
+        anim: "zombieIdle",
+        mode: "loop",
+        speed: "0.5",
+      },
+    },
   });
 
   // ==============================================
   //   Play units animations
   // ==============================================
-  material.playAnimationBatched("soldier", 0, instancesPerUnit, "soldierIdle", "loop", 0.5);
-  material.playAnimationBatched("mutant", 0, instancesPerUnit, "mutantDance", "loop", 0.5);
-  material.playAnimationBatched("zombie", 0, instancesPerUnit, "zombieIdle", "loop", 0.5);
+  material.playAnimationBatched(
+    "soldier",
+    0,
+    instancesPerUnit,
+    "soldierIdle",
+    "loop",
+    0.5
+  );
+  material.playAnimationBatched(
+    "mutant",
+    0,
+    instancesPerUnit,
+    "mutantDance",
+    "loop",
+    0.5
+  );
+  material.playAnimationBatched(
+    "zombie",
+    0,
+    instancesPerUnit,
+    "zombieIdle",
+    "loop",
+    0.5
+  );
 }

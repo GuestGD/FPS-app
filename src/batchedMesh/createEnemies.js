@@ -11,6 +11,7 @@ const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
 const animLodDistance = new THREE.Vector2(8000, 15000);
+const geometryLodDistances = [2000, 4000, 7000, 20000]
 
 export async function createEnemies(scene, renderer, instancesPerUnit) {
   // ==============================================
@@ -77,7 +78,11 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   ktxLoaded.enemiesDiffArray.colorSpace = THREE.SRGBColorSpace;
 
   const material = new SkinnedBatchMaterial({
-    maps: ktxLoaded.enemiesDiffArray,
+    maps: {
+      mapsArray: ktxLoaded.enemiesDiffArray,
+      normalMapsArray: null,
+      ormMapsArray: null,
+    },
     unitsData,
     animLodDistance,
   });
@@ -93,8 +98,9 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
           skinnedMeshesLods.soldier[1].geometry,
           skinnedMeshesLods.soldier[2].geometry,
           skinnedMeshesLods.soldier[3].geometry,
+          skinnedMeshesLods.soldier[4].geometry,
         ],
-        distLod: [2000, 4000, 7000],
+        distLod: geometryLodDistances,
         instancesAmount: instancesPerUnit,
       },
       mutant: {
@@ -103,8 +109,9 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
           skinnedMeshesLods.mutant[1].geometry,
           skinnedMeshesLods.mutant[2].geometry,
           skinnedMeshesLods.mutant[3].geometry,
+          skinnedMeshesLods.mutant[4].geometry,
         ],
-        distLod: [2000, 4000, 7000],
+        distLod: geometryLodDistances,
         instancesAmount: instancesPerUnit,
       },
       zombie: {
@@ -113,8 +120,9 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
           skinnedMeshesLods.zombie[1].geometry,
           skinnedMeshesLods.zombie[2].geometry,
           skinnedMeshesLods.zombie[3].geometry,
+          skinnedMeshesLods.zombie[4].geometry,
         ],
-        distLod: [2000, 4000, 7000],
+        distLod: geometryLodDistances,
         instancesAmount: instancesPerUnit,
       },
     },
@@ -135,19 +143,19 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   // ==============================================
 
   batchedEnemies.placeGrid("soldier", instancesPerUnit, {
-    start: new THREE.Vector3(-12000, -95, 8000),
+    start: new THREE.Vector3(-12000, -100, 8000),
     spacing: new THREE.Vector3(3000, 0, -3000),
     columns: 10,
   });
 
   batchedEnemies.placeGrid("mutant", instancesPerUnit, {
-    start: new THREE.Vector3(-11000, -95, 8000),
+    start: new THREE.Vector3(-11000, -100, 8000),
     spacing: new THREE.Vector3(3000, 0, -3000),
     columns: 10,
   });
 
   batchedEnemies.placeGrid("zombie", instancesPerUnit, {
-    start: new THREE.Vector3(-10000, -95, 8000),
+    start: new THREE.Vector3(-10000, -100, 8000),
     spacing: new THREE.Vector3(3000, 0, -3000),
     columns: 10,
   });
