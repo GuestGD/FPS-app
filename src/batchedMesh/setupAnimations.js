@@ -329,7 +329,7 @@ export function setupAnimations(material, instancesPerUnit) {
         setTimeout(() => {
           showLog = false;
           material.setState(e.unitName, e.instanceId, "dead");
-        }, 2000);
+        }, 1000);
       }
     }
   );
