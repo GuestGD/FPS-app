@@ -28,6 +28,7 @@ export async function setupScene() {
     100000
   );
 
+  camera.position.x -= 12000;
   camera.position.y += 200;
   camera.position.z += 10000;
 

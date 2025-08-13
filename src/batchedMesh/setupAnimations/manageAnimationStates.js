@@ -10,12 +10,15 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   //   Soldier animation states
   // ==============================================
 
+  const soldierRunSpd = 0.02;
+  const soldierCloseMax = 2000;
+
   material.setDistanceState(
     "soldier",
     {
       distName: "close",
       min: 0,
-      max: 2000,
+      max: soldierCloseMax,
       states: {
         default: {
           anim: "soldierFire",
@@ -33,7 +36,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          soldierRunSpd,
           100,
           true
         );
@@ -45,7 +48,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     "soldier",
     {
       distName: "mid",
-      min: 2001,
+      min: soldierCloseMax + 1,
       max: 5000,
       states: {
         default: {
@@ -62,7 +65,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          soldierRunSpd,
           0,
           true
         );
@@ -86,13 +89,15 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   //   Mutant animation states
   // ==============================================
+  const mutantRunSpd = 0.02;
+  const mutantCloseMax = 600;
 
   material.setDistanceState(
     "mutant",
     {
       distName: "close",
       min: 0,
-      max: 500,
+      max: mutantCloseMax,
       states: {
         default: {
           anim: "mutantPunch",
@@ -110,7 +115,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          mutantRunSpd,
           0,
           true
         );
@@ -122,13 +127,13 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     "mutant",
     {
       distName: "mid",
-      min: 501,
+      min: mutantCloseMax + 1,
       max: 5000,
       states: {
         default: {
           anim: "mutantRun",
           mode: "loop",
-          speed: "0.5",
+          speed: "0.75",
         },
       },
     },
@@ -139,7 +144,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          mutantRunSpd,
           0,
           true
         );
@@ -163,13 +168,15 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   //   Zombie animation states
   // ==============================================
+  const zombieRunSpd = 0.02;
+  const zombieCloseMax = 750;
 
   material.setDistanceState(
     "zombie",
     {
       distName: "close",
       min: 0,
-      max: 600,
+      max: zombieCloseMax,
       states: {
         default: {
           anim: "zombiePunch",
@@ -197,7 +204,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          zombieRunSpd,
           0,
           true
         );
@@ -209,7 +216,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     "zombie",
     {
       distName: "mid",
-      min: 601,
+      min: zombieCloseMax + 1,
       max: 5000,
       states: {
         default: {
@@ -226,7 +233,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.unitName,
           e.instanceId,
           camera,
-          0.01,
+          zombieRunSpd,
           0,
           true
         );
@@ -242,7 +249,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
       default: {
         anim: "zombieIdle",
         mode: "loop",
-        speed: "0.5",
+        speed: "0.75",
       },
     },
   });
@@ -264,7 +271,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     instancesPerUnit,
     "mutantDance",
     "loop",
-    0.5
+    0.75
   );
   material.playAnimationBatched(
     "zombie",
@@ -272,6 +279,6 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     instancesPerUnit,
     "zombieIdle",
     "loop",
-    0.5
+    0.75
   );
 }
