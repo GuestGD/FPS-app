@@ -6,6 +6,8 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   const camera = scene.userData.camera;
   const batchedMesh = material.batchedMesh;
 
+  const distanceOffset = 100;
+
   // ==============================================
   //   Soldier animation states
   // ==============================================
@@ -93,7 +95,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   const mutantRunSpd = 0.02;
   const mutantCloseMax = 600;
-  const mutantOffset = new THREE.Vector3(-100, 0, -20).applyQuaternion(
+  const mutantOffset = new THREE.Vector3(-225, 0, -20).applyQuaternion(
     camera.quaternion
   );
 
@@ -122,7 +124,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.instanceId,
           targetPosition,
           mutantRunSpd,
-          0,
+          distanceOffset,
           true
         );
       }
@@ -152,7 +154,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.instanceId,
           targetPosition,
           mutantRunSpd,
-          0,
+          distanceOffset,
           true
         );
       }
@@ -175,9 +177,9 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   //   Zombie animation states
   // ==============================================
-  const zombieRunSpd = 0.02;
+  const zombieRunSpd = 0.015;
   const zombieCloseMax = 750;
-  const zombieOffset = new THREE.Vector3(75, 0, -20).applyQuaternion(
+  const zombieOffset = new THREE.Vector3(225, 0, -20).applyQuaternion(
     camera.quaternion
   );
 
@@ -216,7 +218,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.instanceId,
           targetPosition,
           zombieRunSpd,
-          0,
+          distanceOffset,
           true
         );
       }
@@ -246,7 +248,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
           e.instanceId,
           targetPosition,
           zombieRunSpd,
-          0,
+          distanceOffset,
           true
         );
       }
