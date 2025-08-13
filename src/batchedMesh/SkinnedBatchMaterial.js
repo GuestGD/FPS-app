@@ -253,7 +253,7 @@ export class SkinnedBatchMaterial {
           attribute vec4 skinIndex;
           attribute vec4 skinWeight;
 
-          attribute float unitIndex; // 0 → boneAtlasOne, 1 → boneAtlasTwo
+          attribute highp float unitIndex; // 0 → boneAtlasOne, 1 → boneAtlasTwo, etc.
           attribute float instanceIndex;
           attribute float mapIndex;
           attribute float instancesAmount;

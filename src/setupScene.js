@@ -10,7 +10,7 @@ export async function setupScene() {
   // ==============================================
   //   SELECT ENEMIES AMOUNT FIRST
   // ==============================================
-  const { instancesPerUnit } = await setupLilGui();
+  const { instancesPerUnit, pixelRatio } = await setupLilGui();
 
   // ==============================================
   //   SCENE SETUP
@@ -41,7 +41,7 @@ export async function setupScene() {
   });
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setPixelRatio(
-    isMobile() ? devicePixelRatio * 0.5 : devicePixelRatio
+    isMobile() ? pixelRatio : devicePixelRatio
   );
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   document.body.appendChild(renderer.domElement);

@@ -27,10 +27,10 @@ export class BatchedMeshLod extends BatchedMesh {
     super(maxInstances, maxVertices, maxIndices, material);
 
     // This is used to set attributes per all lods of one unit easily. Global buffer (one Float32 for all vertices)
-    const unitIndexBuf = new Float32Array(maxVertices);
-    const instanceIndexBuf = new Float32Array(maxVertices);
-    const mapIndexBuf = new Float32Array(maxVertices);
-    const instanceAmountBuf = new Float32Array(maxVertices);
+    const unitIndexBuf = new Uint8Array(maxVertices);
+    const instanceIndexBuf = new Uint16Array(maxVertices);
+    const mapIndexBuf = new Uint8Array(maxVertices);
+    const instanceAmountBuf = new Uint16Array(maxVertices);
 
     let vertexCursor = 0;
     let globalInstanceCursor = 0;
@@ -60,9 +60,9 @@ export class BatchedMeshLod extends BatchedMesh {
             const vc = geom.attributes.position.count;
             this.units[unitName].unitTotalVertices += vc;
 
-            instanceIndexBuf.fill(i, vertexCursor, vertexCursor + vc);
-
             unitIndexBuf.fill(unitIndex, vertexCursor, vertexCursor + vc);
+
+            instanceIndexBuf.fill(i, vertexCursor, vertexCursor + vc);
 
             mapIndexBuf.fill(unitIndex, vertexCursor, vertexCursor + vc);
 
