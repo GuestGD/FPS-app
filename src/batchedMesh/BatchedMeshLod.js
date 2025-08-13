@@ -103,7 +103,7 @@ export class BatchedMeshLod extends BatchedMesh {
 
     /* ------------------------------------------------------------- */
     /* ------------------------------------------------------------- */
-    
+
     this.lodInfo = {};
 
     for (const [unitName, { distLod, instancesAmount }] of Object.entries(
@@ -173,7 +173,41 @@ export class BatchedMeshLod extends BatchedMesh {
   }
 
   setMatrix(unitName, instanceIndex, matrix4) {
-    matrix4.toArray(this.matrices[unitName], instanceIndex * 16);
+    if (!this.matrices?.[unitName]) {
+      console.error(`Unit ${unitName} does not exist.`);
+      return null;
+    }
+
+    const matrices = this.matrices[unitName];
+    const offset = instanceIndex * 16;
+    if (offset < 0 || offset + 15 >= matrices.length) {
+      console.error(
+        `Instance index ${instanceIndex} is out of range for unit ${unitName}.`
+      );
+      return;
+    }
+
+    matrix4.toArray(matrices, offset);
+  }
+
+  getMatrix(unitName, instanceIndex) {
+    if (!this.matrices?.[unitName]) {
+      console.error(`Unit ${unitName} does not exist.`);
+      return null;
+    }
+
+    const matrices = this.matrices[unitName];
+    const offset = instanceIndex * 16;
+    if (offset < 0 || offset + 15 >= matrices.length) {
+      console.error(
+        `Instance index ${instanceIndex} is out of range for unit ${unitName}.`
+      );
+      return;
+    }
+
+    const matrix4 = new Matrix4();
+
+    return matrix4.fromArray(this.matrices[unitName], instanceIndex * 16);
   }
 
   setMapIndex(unitName, value) {
@@ -221,7 +255,7 @@ export class BatchedMeshLod extends BatchedMesh {
     const spacing = opts.spacing || new Vector3(600, 0, 600);
     const columns = opts.columns || Math.ceil(Math.sqrt(count));
     const scale = opts.scale || 200;
-    const rot = opts.rot || new Euler(-Math.PI / 2, 0, 0);
+    const rot = opts.rot || new Euler(0, 0, 0);
 
     const pos = new Vector3();
     const scl = new Vector3(scale, scale, scale);

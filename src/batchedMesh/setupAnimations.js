@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
-export function setupAnimations(material, instancesPerUnit) {
+const topDir = new THREE.Vector3(0, 1, 0);
+
+export function setupAnimations(scene, material, instancesPerUnit) {
   // ==============================================
   //   Soldier animations
   // ==============================================
@@ -322,13 +324,41 @@ export function setupAnimations(material, instancesPerUnit) {
       let showLog = e.show;
       if (!showLog) {
         showLog = true;
-        const matrix = e.matrix;
-        const position = new THREE.Vector3().setFromMatrixPosition(matrix);
-        matrix.setPosition(new THREE.Vector3(0, 0, 0));
-        material.batchedMesh.updateMatrixWorld(true);
+
+        const camera = scene.userData.camera;
+
+        if (camera) {
+          const position = new THREE.Vector3();
+          const scale = new THREE.Vector3();
+          const q = new THREE.Quaternion();
+          e.matrix.decompose(position, q, scale);
+
+          // direction to camera, flattened to XZ plane
+          const dir = new THREE.Vector3()
+            .subVectors(camera.position, position)
+            .setY(0)
+            .normalize();
+
+          const lookAtM = new THREE.Matrix4().lookAt(
+            position,
+            position.clone().add(dir),
+            new THREE.Vector3(0, 1, 0) // use world up, not camera.up
+          );
+
+          lookAtM.multiply(new THREE.Matrix4().makeRotationY(Math.PI));
+
+          const lookQ = new THREE.Quaternion().setFromRotationMatrix(lookAtM);
+
+          const outMatrix = new THREE.Matrix4();
+          outMatrix.compose(position, lookQ, scale);
+
+          material.batchedMesh.setMatrix(e.unitName, e.instanceId, outMatrix);
+          material.batchedMesh.computeBoundingSphere();
+        }
+
         setTimeout(() => {
-          showLog = false;
-          material.setState(e.unitName, e.instanceId, "dead");
+          // showLog = false;
+          // material.setState(e.unitName, e.instanceId, "dead");
         }, 1000);
       }
     }

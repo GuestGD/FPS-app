@@ -11,7 +11,7 @@ const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
 const animLodDistance = new THREE.Vector2(8000, 15000);
-const geometryLodDistances = [2000, 4000, 7000, 20000]
+const geometryLodDistances = [2000, 4000, 7000, 20000];
 
 export async function createEnemies(scene, renderer, instancesPerUnit) {
   // ==============================================
@@ -133,9 +133,6 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   batchedEnemies.setMapIndex("mutant", 1.0);
   batchedEnemies.setMapIndex("zombie", 2.0);
 
-  scene.userData.enemies = batchedEnemies;
-  scene.userData.material = material;
-
   scene.add(batchedEnemies);
 
   // ==============================================
@@ -161,6 +158,7 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   });
 
   batchedEnemies.updateMatrixWorld(true);
+  batchedEnemies.computeBoundingBox();
 
   // ==============================================
   //   SKINNED BATCHED MATERIAL PATTERNS SETUP
@@ -168,7 +166,11 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
 
   material.setBatchedMesh(batchedEnemies);
 
-  setupAnimations(material, instancesPerUnit);
+  setupAnimations(scene, material, instancesPerUnit);
+
+  // Temp
+  scene.userData.enemies = batchedEnemies;
+  scene.userData.material = material;
 
   return { batchedEnemies };
 }
