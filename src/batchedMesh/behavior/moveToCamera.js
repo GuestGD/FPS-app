@@ -2,12 +2,12 @@ export default function moveToCamera(
   batchedMesh,
   unitName,
   instanceId,
-  camera,
+  targetPosition,
   lerpFactor = 0.01,
   stopDistance = 0,
   lookAtTarget
 ) {
-  if (!batchedMesh || !unitName || !camera) {
+  if (!batchedMesh || !unitName || !targetPosition) {
     console.warn("lookAtCamera error! Set arguments!");
   }
 
@@ -20,7 +20,7 @@ export default function moveToCamera(
   batchedMesh.unitMoveTowards(
     unitName,
     instanceId,
-    camera.position,
+    targetPosition,
     lerpFactor,
     stopDistance,
     lookAtTarget

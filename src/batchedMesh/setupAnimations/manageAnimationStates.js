@@ -31,11 +31,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
       lookAtCamera(batchedMesh, e.unitName, e.instanceId, camera, Math.PI);
 
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position;
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           soldierRunSpd,
           100,
           true
@@ -60,11 +61,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     },
     (e) => {
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position;
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           soldierRunSpd,
           0,
           true
@@ -91,6 +93,9 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   const mutantRunSpd = 0.02;
   const mutantCloseMax = 600;
+  const mutantOffset = new THREE.Vector3(-100, 0, -20).applyQuaternion(
+    camera.quaternion
+  );
 
   material.setDistanceState(
     "mutant",
@@ -110,11 +115,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
       lookAtCamera(batchedMesh, e.unitName, e.instanceId, camera, Math.PI);
 
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position.clone().add(mutantOffset);
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           mutantRunSpd,
           0,
           true
@@ -139,11 +145,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     },
     (e) => {
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position.clone().add(mutantOffset);
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           mutantRunSpd,
           0,
           true
@@ -170,6 +177,9 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   // ==============================================
   const zombieRunSpd = 0.02;
   const zombieCloseMax = 750;
+  const zombieOffset = new THREE.Vector3(75, 0, -20).applyQuaternion(
+    camera.quaternion
+  );
 
   material.setDistanceState(
     "zombie",
@@ -199,11 +209,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
       lookAtCamera(batchedMesh, e.unitName, e.instanceId, camera, Math.PI);
 
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position.clone().add(zombieOffset);
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           zombieRunSpd,
           0,
           true
@@ -228,11 +239,12 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     },
     (e) => {
       if (e.animName.includes("Run")) {
+        const targetPosition = camera.position.clone().add(zombieOffset);
         moveToCamera(
           batchedMesh,
           e.unitName,
           e.instanceId,
-          camera,
+          targetPosition,
           zombieRunSpd,
           0,
           true
