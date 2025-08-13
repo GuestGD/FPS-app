@@ -1,8 +1,4 @@
-import * as THREE from "three";
-
-const topDir = new THREE.Vector3(0, 1, 0);
-
-export function setupAnimations(scene, material, instancesPerUnit) {
+export default function setAnimations(material) {
   // ==============================================
   //   Soldier animations
   // ==============================================
@@ -74,43 +70,6 @@ export function setupAnimations(scene, material, instancesPerUnit) {
   material.setAnimationTransitions("soldier", "soldierRun", {
     soldierFire: "soldierRun_To_soldierFire",
     soldierIdle: "soldierRun_To_soldierIdle",
-  });
-
-  material.setDistanceState("soldier", {
-    distName: "close",
-    min: 0,
-    max: 2000,
-    states: {
-      default: {
-        anim: "soldierFire",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-  material.setDistanceState("soldier", {
-    distName: "mid",
-    min: 2001,
-    max: 5000,
-    states: {
-      default: {
-        anim: "soldierRun",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-  material.setDistanceState("soldier", {
-    distName: "far",
-    min: 5001,
-    max: Infinity,
-    states: {
-      default: {
-        anim: "soldierIdle",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
   });
 
   // ==============================================
@@ -186,43 +145,6 @@ export function setupAnimations(scene, material, instancesPerUnit) {
     mutantPunch: "mutantRun_To_mutantPunch",
   });
 
-  material.setDistanceState("mutant", {
-    distName: "close",
-    min: 0,
-    max: 2000,
-    states: {
-      default: {
-        anim: "mutantPunch",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-  material.setDistanceState("mutant", {
-    distName: "mid",
-    min: 2001,
-    max: 5000,
-    states: {
-      default: {
-        anim: "mutantRun",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-  material.setDistanceState("mutant", {
-    distName: "far",
-    min: 5001,
-    max: Infinity,
-    states: {
-      default: {
-        anim: "mutantDance",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-
   // ==============================================
   //   Zombie animations
   // ==============================================
@@ -295,124 +217,4 @@ export function setupAnimations(scene, material, instancesPerUnit) {
     zombieIdle: "zombieRun_To_zombieIdle",
     zombiePunch: "zombieRun_To_zombiePunch",
   });
-
-  material.setDistanceState(
-    "zombie",
-    {
-      distName: "close",
-      min: 0,
-      max: 2000,
-      states: {
-        default: {
-          anim: "zombiePunch",
-          mode: "loop",
-          speed: "0.5",
-        },
-        dead: {
-          anim: "zombieIdle",
-          mode: "once",
-          speed: "0.5",
-        },
-        anyOther: {
-          anim: "zombiePunch",
-          mode: "once",
-          speed: "0.5",
-        },
-      },
-    },
-    (e) => {
-      let showLog = e.show;
-      if (!showLog) {
-        showLog = true;
-
-        const camera = scene.userData.camera;
-
-        if (camera) {
-          const position = new THREE.Vector3();
-          const scale = new THREE.Vector3();
-          const q = new THREE.Quaternion();
-          e.matrix.decompose(position, q, scale);
-
-          // direction to camera, flattened to XZ plane
-          const dir = new THREE.Vector3()
-            .subVectors(camera.position, position)
-            .setY(0)
-            .normalize();
-
-          const lookAtM = new THREE.Matrix4().lookAt(
-            position,
-            position.clone().add(dir),
-            new THREE.Vector3(0, 1, 0) // use world up, not camera.up
-          );
-
-          lookAtM.multiply(new THREE.Matrix4().makeRotationY(Math.PI));
-
-          const lookQ = new THREE.Quaternion().setFromRotationMatrix(lookAtM);
-
-          const outMatrix = new THREE.Matrix4();
-          outMatrix.compose(position, lookQ, scale);
-
-          material.batchedMesh.setMatrix(e.unitName, e.instanceId, outMatrix);
-          material.batchedMesh.computeBoundingSphere();
-        }
-
-        setTimeout(() => {
-          // showLog = false;
-          // material.setState(e.unitName, e.instanceId, "dead");
-        }, 1000);
-      }
-    }
-  );
-  material.setDistanceState("zombie", {
-    distName: "mid",
-    min: 2001,
-    max: 5000,
-    states: {
-      default: {
-        anim: "zombieRun",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-  material.setDistanceState("zombie", {
-    distName: "far",
-    min: 5001,
-    max: Infinity,
-    states: {
-      default: {
-        anim: "zombieIdle",
-        mode: "loop",
-        speed: "0.5",
-      },
-    },
-  });
-
-  // ==============================================
-  //   Play units animations
-  // ==============================================
-  material.playAnimationBatched(
-    "soldier",
-    0,
-    instancesPerUnit,
-    "soldierIdle",
-    "loop",
-    0.5
-  );
-  material.playAnimationBatched(
-    "mutant",
-    0,
-    instancesPerUnit,
-    "mutantDance",
-    "loop",
-    0.5
-  );
-  material.playAnimationBatched(
-    "zombie",
-    0,
-    instancesPerUnit,
-    "zombieIdle",
-    "loop",
-    0.5
-  );
 }

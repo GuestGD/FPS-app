@@ -40,9 +40,7 @@ export async function setupScene() {
     powerPreference: "high-performance",
   });
   renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.setPixelRatio(
-    isMobile() ? pixelRatio : devicePixelRatio
-  );
+  renderer.setPixelRatio(isMobile() ? pixelRatio : devicePixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   document.body.appendChild(renderer.domElement);
 
@@ -100,6 +98,10 @@ export async function setupScene() {
   );
   scene.add(groundMesh);
 
+  // Temp
+
+  scene.userData.camera = camera;
+
   // ==============================================
   //   ENEMIES SETUP
   // ==============================================
@@ -109,10 +111,6 @@ export async function setupScene() {
     renderer,
     instancesPerUnit
   );
-
-  // Temp
-
-  scene.userData.camera = camera;
 
   return { scene, camera, renderer, batchedEnemies };
 }

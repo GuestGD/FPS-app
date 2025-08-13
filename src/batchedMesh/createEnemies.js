@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { SkinnedBatchMaterial } from "./SkinnedBatchMaterial.js";
-import { setupAnimations } from "./setupAnimations.js";
+import { manageAnimationStates } from "./setupAnimations/manageAnimationStates.js";
 import { BatchedMeshLod } from "./BatchedMeshLod.js";
 import { loadKtx2 } from "../loadKtx2.js";
 import { loadGlb } from "../loadGlb.js";
 import { loadBinArray } from "../loadBinArray.js";
+import setAnimations from "./setupAnimations/setAnimations.js";
 
 const glbLoaded = {};
 const ktxLoaded = {};
@@ -166,7 +167,8 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
 
   material.setBatchedMesh(batchedEnemies);
 
-  setupAnimations(scene, material, instancesPerUnit);
+  setAnimations(material);
+  manageAnimationStates(scene, material, instancesPerUnit);
 
   // Temp
   scene.userData.enemies = batchedEnemies;

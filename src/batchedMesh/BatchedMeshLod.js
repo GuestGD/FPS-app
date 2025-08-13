@@ -1,11 +1,4 @@
-import {
-  BatchedMesh,
-  Vector3,
-  Euler,
-  Quaternion,
-  Matrix4,
-  BufferAttribute,
-} from "three";
+import * as THREE from "three";
 
 /**
  * @typedef {Object} GridOptions
@@ -16,11 +9,11 @@ import {
  * @property {THREE.Euler} [rot=new THREE.Euler(-Math.PI/2,0,0)]
  */
 
-const _playerPos = new Vector3();
-const _center = new Vector3();
-const _mat = new Matrix4();
+const _playerPos = new THREE.Vector3();
+const _center = new THREE.Vector3();
+const _mat = new THREE.Matrix4();
 
-export class BatchedMeshLod extends BatchedMesh {
+export class BatchedMeshLod extends THREE.BatchedMesh {
   constructor(units, material) {
     const { maxInstances, maxVertices, maxIndices } = countCapacity(units);
 
@@ -81,19 +74,19 @@ export class BatchedMeshLod extends BatchedMesh {
 
     this.geometry.setAttribute(
       "unitIndex",
-      new BufferAttribute(unitIndexBuf, 1, false)
+      new THREE.BufferAttribute(unitIndexBuf, 1, false)
     );
     this.geometry.setAttribute(
       "instanceIndex",
-      new BufferAttribute(instanceIndexBuf, 1, false)
+      new THREE.BufferAttribute(instanceIndexBuf, 1, false)
     );
     this.geometry.setAttribute(
       "mapIndex",
-      new BufferAttribute(mapIndexBuf, 1, false)
+      new THREE.BufferAttribute(mapIndexBuf, 1, false)
     );
     this.geometry.setAttribute(
       "instancesAmount",
-      new BufferAttribute(instanceAmountBuf, 1, false)
+      new THREE.BufferAttribute(instanceAmountBuf, 1, false)
     );
 
     unitIndexBuf.needsUpdate = true;
@@ -205,7 +198,7 @@ export class BatchedMeshLod extends BatchedMesh {
       return;
     }
 
-    const matrix4 = new Matrix4();
+    const matrix4 = new THREE.Matrix4();
 
     return matrix4.fromArray(this.matrices[unitName], instanceIndex * 16);
   }
@@ -245,22 +238,121 @@ export class BatchedMeshLod extends BatchedMesh {
     return this.lodInfo[unitName].unitDist[instanceIndex];
   }
 
+  unitLookAt(
+    unitName,
+    instanceIndex = 0,
+    targetVector = new THREE.Vector3(0, 0, 0),
+    rotationOffset = Math.PI
+  ) {
+    if (!unitName || !targetVector) {
+      console.warn(
+        "UnitLookAt error! Set unitName, instanceIndex and targetVector"
+      );
+      return;
+    }
+
+    const matrix = this.getMatrix(unitName, instanceIndex);
+
+    const position = new THREE.Vector3();
+    const scale = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+
+    matrix.decompose(position, quaternion, scale);
+
+    // Direction to camera/any other Vector3 object, flattened to XZ plane
+    const dir = new THREE.Vector3()
+      .subVectors(targetVector, position)
+      .setY(0)
+      .normalize();
+
+    const lookAtMatrix = new THREE.Matrix4().lookAt(
+      position,
+      position.clone().add(dir),
+      new THREE.Vector3(0, 1, 0) // World up
+    );
+
+    lookAtMatrix.multiply(new THREE.Matrix4().makeRotationY(rotationOffset));
+
+    const lookQuaternion = new THREE.Quaternion().setFromRotationMatrix(
+      lookAtMatrix
+    );
+
+    const finalMatrix = new THREE.Matrix4();
+    finalMatrix.compose(position, lookQuaternion, scale);
+
+    this.setMatrix(unitName, instanceIndex, finalMatrix);
+
+    this.updateMatrixWorld(true);
+
+    this.computeBoundingBox();
+    this.computeBoundingSphere();
+  }
+
+  unitMoveTowards(
+    unitName,
+    instanceIndex,
+    targetVector,
+    lerpFactor,
+    stopDistance = 0,
+    rotateToTarget = false
+  ) {
+    if (!unitName || !targetVector) return;
+
+    const dist = this.getUnitInstanceDistance(unitName, instanceIndex);
+    if (stopDistance > 0 && dist <= stopDistance) return;
+
+    const matrix = this.getMatrix(unitName, instanceIndex);
+    if (!matrix) return;
+
+    const pos = new THREE.Vector3();
+    const scale = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    matrix.decompose(pos, quat, scale);
+
+    // Keep original Y
+    const currentY = pos.y;
+    const xzTarget = new THREE.Vector3(
+      targetVector.x,
+      currentY,
+      targetVector.z
+    );
+
+    // Horizontal lerp
+    pos.lerp(xzTarget, lerpFactor);
+
+    if (rotateToTarget) {
+      const dir = new THREE.Vector3()
+        .subVectors(xzTarget, pos)
+        .setY(0)
+        .normalize();
+
+      const look = new THREE.Matrix4()
+        .lookAt(pos, pos.clone().add(dir), new THREE.Vector3(0, 1, 0))
+        .multiply(new THREE.Matrix4().makeRotationY(Math.PI));
+
+      quat.setFromRotationMatrix(look);
+    }
+
+    const final = new THREE.Matrix4().compose(pos, quat, scale);
+    this.setMatrix(unitName, instanceIndex, final);
+  }
+
   /**
    * @param {string} unitName
    * @param {number} count
    * @param {GridOptions} opts
    */
   placeGrid(unitName, count, /** @type {GridOptions} */ opts = {}) {
-    const start = opts.start || new Vector3(0, 0, 0);
-    const spacing = opts.spacing || new Vector3(600, 0, 600);
+    const start = opts.start || new THREE.Vector3(0, 0, 0);
+    const spacing = opts.spacing || new THREE.Vector3(600, 0, 600);
     const columns = opts.columns || Math.ceil(Math.sqrt(count));
     const scale = opts.scale || 200;
-    const rot = opts.rot || new Euler(0, 0, 0);
+    const rot = opts.rot || new THREE.Euler(0, 0, 0);
 
-    const pos = new Vector3();
-    const scl = new Vector3(scale, scale, scale);
-    const quat = new Quaternion().setFromEuler(rot);
-    const mat = new Matrix4();
+    const pos = new THREE.Vector3();
+    const scl = new THREE.Vector3(scale, scale, scale);
+    const quat = new THREE.Quaternion().setFromEuler(rot);
+    const mat = new THREE.Matrix4();
 
     for (let i = 0; i < count; i++) {
       const col = i % columns;
@@ -268,7 +360,9 @@ export class BatchedMeshLod extends BatchedMesh {
 
       pos
         .copy(start)
-        .add(new Vector3(col * spacing.x, row * spacing.y, row * spacing.z));
+        .add(
+          new THREE.Vector3(col * spacing.x, row * spacing.y, row * spacing.z)
+        );
 
       mat.compose(pos, quat, scl);
       this.setMatrix(unitName, i, mat);

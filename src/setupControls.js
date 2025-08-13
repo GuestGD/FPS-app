@@ -94,41 +94,10 @@ export function updateControls(scene) {
 
   // TESTS
   const material = scene.userData.material;
+  const camera = scene.userData.camera;
   const mesh = scene.userData.material.batchedMesh;
-  const rotX = new THREE.Vector3(1, 0, 0);
-  const rotY = new THREE.Vector3(0, 0, 1);
-  const angleX = THREE.MathUtils.degToRad(-90);
-  const angleY = THREE.MathUtils.degToRad(-90);
 
   if (keys["KeyR"]) {
-    const matrix = new THREE.Matrix4();
-
-    const pos = new THREE.Vector3(0, 200, 0);
-    const scale = new THREE.Vector3(222, 222, 222);
-    const quatX = new THREE.Quaternion().setFromAxisAngle(rotX, angleX);
-    const quatY = new THREE.Quaternion().setFromAxisAngle(rotY, angleY);
-
-    const targetPos = scene.userData.camera; // Example target
-    const direction = new THREE.Vector3()
-      .subVectors(targetPos, pos)
-      .normalize();
-
-    // Combine them by multiplying (order matters!)
-    const quatCombined = quatX.multiply(quatY);
-    const quaternion = new THREE.Quaternion();
-    const forward = new THREE.Vector3(0, 1, 0); // Default forward (Z-axis)
-    quaternion.setFromUnitVectors(forward, direction);
-
-    matrix.compose(pos, quaternion, scale);
-
-    mesh.setMatrix("zombie", 0, matrix);
-
-    mesh.updateMatrixWorld(true);
-    mesh.computeBoundingSphere();
-    mesh.computeBoundingBox();
-
-    console.log(
-      new THREE.Vector3().setFromMatrixPosition(mesh.getMatrix("zombie", 0))
-    );
+    mesh.unitLookAt("zombie", 0, camera.position, Math.PI);
   }
 }
