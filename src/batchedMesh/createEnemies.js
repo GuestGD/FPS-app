@@ -11,7 +11,7 @@ const glbLoaded = {};
 const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
-const animLodDistance = new THREE.Vector2(8000, 15000);
+const animLodDistance = new THREE.Vector2(8000, 15500);
 const geometryLodDistances = [2000, 4000, 7000, 20000];
 
 export async function createEnemies(scene, renderer, instancesPerUnit) {
