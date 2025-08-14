@@ -14,11 +14,11 @@
 - [Material available methods](#-material-methods)
 - [Batched mesh available methods](#-mesh-methods)
 - [Usage Examples](#-usage-examples)
-- [API Reference](#-api-reference)
+- [Demo installation](#-demo-installation)
 
 ---
 
-## ✨ Features  
+## ✨ Features
 
 - Individual units independent animation while each unit is just an instance of one batched mesh
 - Create custom events linked to a certain animation frame
@@ -147,6 +147,133 @@ const unitsData = {
 
 ### batchedEnemies will not be visible without .update function!
 
+## 🔨 Material methods
+
+### Animations setup methods:
+
+```bash
+  setAnimationFrames(
+    unitName,
+    animName,
+    startFrame,
+    endFrame,
+    fps,
+    transit
+  )
+```
+
+```bash
+setAnimationTransitions(unitName, animName, transitions = {})
+```
+
+```bash
+setBatchedMesh(batchedMesh)
+```
+
+### Animations managing methods:
+
+```bash
+playAnimation(unitName, localInstanceId, animName, mode, speed)
+```
+
+```bash
+playAnimation(unitName, localInstanceId, animName, mode, speed)
+```
+
+```bash
+  playAnimationBatched(
+    unitName,
+    startInstanceId,
+    endInstanceId,
+    animName,
+    mode,
+    speed
+  )
+```
+
+```bash
+stopAnimation(unitName, localInstanceId)
+```
+
+```bash
+stopAnimationBatched(unitName, startInstanceId, endInstanceId)
+```
+
+```bash
+pauseAnimation(unitName, localInstanceId)
+```
+
+```bash
+resumeAnimation(unitName, localInstanceId, newSpeed)
+```
+
+### Unit info methods:
+
+```bash
+isPaused(unitName, localInstanceId)
+```
+
+```bash
+isStopped(unitName, localInstanceId)
+```
+
+```bash
+isPlaying(unitName, localInstanceId)
+```
+
+```bash
+getInstanceAnimationData(unitName, instanceIndex)
+```
+
+### Transition method:
+
+```bash
+  transitionToAnimation(
+    unitName,
+    localInstanceId,
+    targetAnimName,
+    targetAnimMode,
+    targetAnimSpeed,
+    transitionClipName,
+    transitionClipSpeed,
+    onComplete
+  )
+```
+
+### Events methods:
+
+```bash
+createEvent(unitName, animName, frame, callback)
+```
+
+```bash
+removeEvent(unitName, animName, frame)
+```
+
+### Main update method:
+
+```bash
+updateAnimations(delta)
+```
+
+### Unit states methods:
+
+```bash
+setDistanceState(unitName, config, callBack)
+```
+
+```bash
+getDistanceState(unitName, instanceId)
+```
+
+```bash
+setState(unitName, instanceId, stateName)
+```
+
+```bash
+getState(unitName, instanceId)
+```
+
 ## 🔨 How to import animations
 
 Animations must be exported as a flat Float32Array of matrices. There are several ways of doing this:
@@ -159,7 +286,7 @@ The final result must be Float32Array containing bones matrices for all desired 
 
 - A character has 50 bones. Each bones has 4x4 matrix so 50\*16 = 800. It means each 800 values of this Float32Array is 1 frame of the character animations. Combine all animations frames into one array this way.
 
-## 📤 Installation
+## 📤 Demo installation
 
 ```bash
 git clone https://github.com/GuestGD/threeSBML.git
