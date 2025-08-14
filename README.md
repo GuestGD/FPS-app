@@ -130,7 +130,7 @@ const unitsData = {
         instancesAmount: 20,
       },
     },
-    material.getMaterial() // or use just any THREE material if you dont need animations
+    material // or use just any THREE material if you dont need animations
   );
 
   scene.add(batchedEnemies);
