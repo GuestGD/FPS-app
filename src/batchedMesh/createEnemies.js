@@ -163,8 +163,8 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     columns: 10,
   });
 
-  batchedEnemies.updateMatrixWorld(true);
-  batchedEnemies.computeBoundingBox();
+  // batchedEnemies.updateMatrixWorld(true);
+  // batchedEnemies.computeBoundingBox();
 
   // ==============================================
   //   SKINNED BATCHED MATERIAL PATTERNS SETUP

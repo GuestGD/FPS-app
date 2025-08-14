@@ -6,7 +6,7 @@
 
 ---
 
-## 📖 Table of Contents  
+## 📖 Table of Contents
 
 - [Features](#-features)
 - [Quick Start](#-quick-start)
@@ -130,13 +130,83 @@ const unitsData = {
         instancesAmount: 20,
       },
     },
-    material // or use just any THREE material if you dont need animations
+    material // or just use any THREE material if you dont need animations
   );
 
   scene.add(batchedEnemies);
 ```
 
-9. Then in main animate loop:
+9. Put units to desired position. There are 2 options:
+
+- Use placeGrid() method to place units in a grid
+
+```bash
+  batchedEnemies.placeGrid("soldier", instancesPerUnit, {
+    start: new THREE.Vector3(-12000, -100, 8000),
+    spacing: new THREE.Vector3(3000, 0, -3000),
+    columns: 10,
+  });
+```
+
+- Or use method setMatrix(unitName, instanceIndex, matrix4)
+
+```bash
+const scaleValue = 200;
+
+const position = new THREE.Vector3(100, 0, 100);
+const scale = new THREE.Vector3(scaleValue, scaleValue, scaleValue);
+const quaternion = new THREE.Quaternion();
+
+const matrix4 = new THREE.Matrix4();
+
+matrix4.compose(position, quaternion, scale);
+
+setMatrix("soldier", 10, matrix4)
+```
+
+10. Let the material get access to LOD distance values and matrices:
+
+```bash
+material.setBatchedMesh(batchedEnemies);
+```
+
+11. Now you are ready to setup animations. The material must know what frame ranges from Float32Array contains certain animations. That's why [Blender addon](https://github.com/GuestGD/AnimationFrameExporter) gonna be so useful. It exports JS helper that contains all necessary lines of code. It allows to just copy-paste all necessary data about frame ranges and transitions. You will find lines like these:
+
+```bash
+material.setAnimationFrames("soldier", "soldierRest", 0, 0, 30);
+material.setAnimationFrames("soldier", "soldierFire", 1, 27, 30);
+material.setAnimationFrames("soldier", "soldierIdle", 28, 71, 30);
+material.setAnimationFrames("soldier", "soldierRun", 72, 79, 30);
+...
+...
+material.setAnimationTransitions("soldier", "soldierFire", {
+  soldierIdle: "soldierFire_To_soldierIdle",
+  soldierRun: "soldierFire_To_soldierRun",
+});
+```
+
+12. At this points you are ready to simply play animations.
+
+Play animation for a range of instances:
+
+```bash
+  material.playAnimationBatched(
+    "soldier",
+    0,
+    10,
+    "soldierFire",
+    "loop",
+    0.75
+  );
+```
+
+Play animation for a certain instance:
+
+```bash
+material.playAnimation("soldier", 5, "soldierFire", "loop", 0.75);
+```
+
+13. Then in main animate loop:
 
 ```bash
     const delta = new THREE.Clock().getDelta();
@@ -146,6 +216,20 @@ const unitsData = {
 ```
 
 ### batchedEnemies will not be visible without .update function!
+
+# [⤴️](#-table-of-contents)
+
+## 🔨 How to import animations
+
+Animations must be exported as a flat Float32Array of matrices. There are several ways of doing this:
+
+1. The easiest way - use my [Blender addon](https://github.com/GuestGD/AnimationFrameExporter) . I really recommend using this approach to simplify your pipeline. The addon exports desired units animations allowing to pick a step, creating transition animations for all animation combinations in addition. Also it exports a tiny JS helper with lines of code you can just copy-paste into your project to set animation frames and transition animations.
+2. You can manually play an animation of a typical skinned mesh in any three js project and write bones matrices of desired animations for needed frames. Then export it to any format you prefer.
+3. Any other way you want.
+
+The final result must be Float32Array containing bones matrices for all desired frames of unit's animations. For example:
+
+- A character has 50 bones. Each bones has 4x4 matrix so 50\*16 = 800. It means each 800 values of this Float32Array is 1 frame of the character animations. Combine all animations frames into one array this way.
 
 # [⤴️](#-table-of-contents)
 
@@ -278,21 +362,7 @@ getState(unitName, instanceId)
 
 # [⤴️](#-table-of-contents)
 
-## 🔨 How to import animations
-
-Animations must be exported as a flat Float32Array of matrices. There are several ways of doing this:
-
-1. The easiest way - use my [Blender addon](https://github.com/GuestGD/AnimationFrameExporter) . I really recommend using this approach to simplify your pipeline. The addon exports desired units animations allowing to pick a step, creating transition animations for all animation combinations in addition. Also it exports a tiny JS helper with lines of code you can just copy-paste into your project to set animation frames and transition animations.
-2. You can manually play an animation of a typical skinned mesh in any three js project and write bones matrices of desired animations for needed frames. Then export it to any format you prefer.
-3. Any other way you want.
-
-The final result must be Float32Array containing bones matrices for all desired frames of unit's animations. For example:
-
-- A character has 50 bones. Each bones has 4x4 matrix so 50\*16 = 800. It means each 800 values of this Float32Array is 1 frame of the character animations. Combine all animations frames into one array this way.
-
-# [⤴️](#-table-of-contents)
-
-## 📤 Demo installation 
+## 📤 Demo installation
 
 ```bash
 git clone https://github.com/GuestGD/threeSBML.git

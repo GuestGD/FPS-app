@@ -163,6 +163,11 @@ export class BatchedMeshLod extends THREE.BatchedMesh {
         }
       }
     }
+
+    this.updateMatrixWorld(true);
+
+    this.computeBoundingBox();
+    this.computeBoundingSphere();
   }
 
   setMatrix(unitName, instanceIndex, matrix4) {
@@ -281,11 +286,6 @@ export class BatchedMeshLod extends THREE.BatchedMesh {
     finalMatrix.compose(position, lookQuaternion, scale);
 
     this.setMatrix(unitName, instanceIndex, finalMatrix);
-
-    this.updateMatrixWorld(true);
-
-    this.computeBoundingBox();
-    this.computeBoundingSphere();
   }
 
   unitMoveTowards(
