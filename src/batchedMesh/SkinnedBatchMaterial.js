@@ -11,18 +11,23 @@ const _stateEvent = {
   speed: 0,
 };
 
-export class SkinnedBatchMaterial {
-  constructor({ maps, unitsData, animLodDistance, useAO = false }) {
-    this.material = new THREE.MeshStandardMaterial({
-      allowOverride: false,
-      fog: false,
-      transparent: false,
-      side: THREE.FrontSide,
+export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
+  constructor({ maps, unitsData, animLodDistance, useAO = false, ...options }) {
+    const newDefines = {
+      USE_NORMAL_MAP: !!maps.normalMapsArray,
+      USE_TANGENT: !!maps.normalMapsArray,
+      USE_ROUGHNESS_MAP: !!maps.ormMapsArray,
+      USE_METALNESS_MAP: !!maps.ormMapsArray,
+      USE_AO_MAP: !!useAO,
+      ...(options.defines || {}),
+    };
+
+    super({
+      ...options,
+      defines: newDefines,
     });
 
     this.batchedMesh = null;
-
-    this.material.update = this;
 
     this.textures = { ...maps };
     this.unitsData = unitsData;
@@ -42,14 +47,6 @@ export class SkinnedBatchMaterial {
     this._createInstancesManageTexture(unitsData);
 
     this._transitionEvents = {};
-
-    this.material.defines = {
-      USE_NORMAL_MAP: !!this.textures.normalMapsArray,
-      USE_TANGENT: !!this.textures.normalMapsArray,
-      USE_ROUGHNESS_MAP: !!this.textures.ormMapsArray,
-      USE_METALNESS_MAP: !!this.textures.ormMapsArray,
-      USE_AO_MAP: !!this.useAO,
-    };
   }
   // ==============================================
   //              PRIVATE METHODS
@@ -194,8 +191,8 @@ export class SkinnedBatchMaterial {
     const boneAtlasTwo = Object.values(this.materialData)[1].boneAtlas;
     const boneAtlasThree = Object.values(this.materialData)[2].boneAtlas;
 
-    this.material.onBeforeCompile = (shader) => {
-      Object.assign(shader.defines, this.material.defines);
+    this.onBeforeCompile = (shader) => {
+      Object.assign(shader.defines, this.defines);
 
       shader.uniforms.instanceManageTexture = {
         value: this.instanceManageTexture,
@@ -968,11 +965,6 @@ export class SkinnedBatchMaterial {
     delete this.frameEvents[eventKey];
   }
 
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
-  getMaterial() {
-    return this.material;
-  }
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
   getInstanceAnimationData(unitName, instanceIndex) {

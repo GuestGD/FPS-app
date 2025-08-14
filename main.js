@@ -22,10 +22,10 @@ function animate() {
   // Game logic updates
   updateControls(scene);
 
-  // if (batchedEnemies) {
+  if (batchedEnemies) {
     batchedEnemies.update(camera);
-    batchedEnemies.material.update.updateAnimations(delta);
-  // }
+    batchedEnemies.material.updateAnimations(delta);
+  }
 
   renderer.render(scene, camera);
 }

@@ -87,6 +87,10 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     unitsData,
     animLodDistance,
     useAO: false,
+    metalness: 0.4,
+    roughness: 0.5,
+    envMap: scene.environment,
+    envMapIntensity: 1.0,
   });
 
   // ==============================================
@@ -128,7 +132,7 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
         instancesAmount: instancesPerUnit,
       },
     },
-    material.getMaterial()
+    material
   );
 
   batchedEnemies.setMapIndex("soldier", 0.0); // OPTIONAL - INDEX OF KTX2 ARRAY TEXTURE IS USED BY DEFAULT
