@@ -43,14 +43,14 @@ npm i @guestgd/three-sbml
 
 3. Import both scripts:
 
-```bash
+```js
 import { SkinnedBatchMaterial } from "./SkinnedBatchMaterial.js";
 import { BatchedMeshLod } from "./BatchedMeshLod.js";
 ```
 
 4. Load every character animations from it's bin file:
 
-```bash
+```js
 export async function loadBinArray(binPath) {
   const response = await fetch(binPath);
   const buffer = await response.arrayBuffer();
@@ -62,7 +62,7 @@ export async function loadBinArray(binPath) {
 
 6. Load texture maps of the characters. The maps must be combined to DataArrayTexture or CompressedArrayTexture. KTX2 CompressedArrayTexture is recommended. Here is an example of [KTX-Software](https://github.com/KhronosGroup/KTX-Software) command to create ready to use CompressedArrayTexture with diffuse maps for 3 characters:
 
-```bash
+```js
 ktx create --format R8G8B8_UNORM --layers 3 --assign-tf linear --encode basis-lz --generate-mipmap --mipmap-filter box difuseEnemy1.png difuseEnemy2.png difuseEnemy3.png enemiesDiffArray.ktx2
 ```
 
@@ -72,29 +72,29 @@ Take care of the textures order also. The shader gonna use corresponding index f
 
 7. Now create new SkinnedBatchMaterial:
 
-```bash
-  const material = new SkinnedBatchMaterial({
-    maps: {
-      mapsArray: ktxLoaded.enemiesDiffArray, // diffuseMaps CompressedArrayTexture
-      normalMapsArray: null, // normalMaps CompressedArrayTexture. Must be THREE.NoColorSpace
-      ormMapsArray: null, // ORM texture contains AOmap in R channel, roughness map in G channel and metalness map in B channel
-    },
-    unitsData, // must contain unit names with next data for each: rawMatrices, boneInverses, bonesAmount
-    animLodDistance, // Vector2 object with distance thresholds allowing to simplify animations on distance. Example: new THREE.Vector2(5000, 15000);
-    useAO: false, // this flag defines if shader gonna use R channel from ORM texture
-  });
+```js
+const material = new SkinnedBatchMaterial({
+  maps: {
+    mapsArray: ktxLoaded.enemiesDiffArray, // diffuseMaps CompressedArrayTexture
+    normalMapsArray: null, // normalMaps CompressedArrayTexture. Must be THREE.NoColorSpace
+    ormMapsArray: null, // ORM texture contains AOmap in R channel, roughness map in G channel and metalness map in B channel
+  },
+  unitsData, // must contain unit names with next data for each: rawMatrices, boneInverses, bonesAmount
+  animLodDistance, // Vector2 object with distance thresholds allowing to simplify animations on distance. Example: new THREE.Vector2(5000, 15000);
+  useAO: false, // this flag defines if shader gonna use R channel from ORM texture
+});
 ```
 
 Example of unitData object structure:
 
-```bash
+```js
 const unitsData = {
   soldier: {
     rawMatrices: soldierLoadedBin,
     boneInverses: soldierSkinnedMesh.skeleton.boneInverses,
     bonesAmount: soldierSkinnedMesh.skeleton.bones.length,
   },
-   mutant: {
+  mutant: {
     rawMatrices: mutantLoadedBin,
     boneInverses: mutantSkinnedMesh.skeleton.boneInverses,
     bonesAmount: mutantSkinnedMesh.skeleton.bones.length,
@@ -104,53 +104,53 @@ const unitsData = {
 
 8. Create new BatchedMeshLod:
 
-```bash
-  const batchedEnemies = new BatchedMeshLod(
-    {
-      soldier: {
-        geometries: [
-          skinnedMeshesLods.soldier[0].geometry, // Prepare geometry LODs in Blender to use it here
-          skinnedMeshesLods.soldier[1].geometry,
-          skinnedMeshesLods.soldier[2].geometry,
-          skinnedMeshesLods.soldier[3].geometry,
-          skinnedMeshesLods.soldier[4].geometry,
-        ],
-        distLod: [2000, 4000, 7000, 20000],
-        instancesAmount: 10,
-      },
-      mutant: {
-        geometries: [
-          skinnedMeshesLods.mutant[0].geometry,
-          skinnedMeshesLods.mutant[1].geometry,
-          skinnedMeshesLods.mutant[2].geometry,
-          skinnedMeshesLods.mutant[3].geometry,
-          skinnedMeshesLods.mutant[4].geometry,
-        ],
-        distLod: [2000, 3000, 5000, 10000],
-        instancesAmount: 20,
-      },
+```js
+const batchedEnemies = new BatchedMeshLod(
+  {
+    soldier: {
+      geometries: [
+        skinnedMeshesLods.soldier[0].geometry, // Prepare geometry LODs in Blender to use it here
+        skinnedMeshesLods.soldier[1].geometry,
+        skinnedMeshesLods.soldier[2].geometry,
+        skinnedMeshesLods.soldier[3].geometry,
+        skinnedMeshesLods.soldier[4].geometry,
+      ],
+      distLod: [2000, 4000, 7000, 20000],
+      instancesAmount: 10,
     },
-    material // or just use any THREE material if you dont need animations
-  );
+    mutant: {
+      geometries: [
+        skinnedMeshesLods.mutant[0].geometry,
+        skinnedMeshesLods.mutant[1].geometry,
+        skinnedMeshesLods.mutant[2].geometry,
+        skinnedMeshesLods.mutant[3].geometry,
+        skinnedMeshesLods.mutant[4].geometry,
+      ],
+      distLod: [2000, 3000, 5000, 10000],
+      instancesAmount: 20,
+    },
+  },
+  material // or just use any THREE material if you dont need animations
+);
 
-  scene.add(batchedEnemies);
+scene.add(batchedEnemies);
 ```
 
 9. Put units to desired position. There are 2 options:
 
 - Use placeGrid() method to place units in a grid
 
-```bash
-  batchedEnemies.placeGrid("soldier", instancesPerUnit, {
-    start: new THREE.Vector3(-12000, -100, 8000),
-    spacing: new THREE.Vector3(3000, 0, -3000),
-    columns: 10,
-  });
+```js
+batchedEnemies.placeGrid("soldier", instancesPerUnit, {
+  start: new THREE.Vector3(-12000, -100, 8000),
+  spacing: new THREE.Vector3(3000, 0, -3000),
+  columns: 10,
+});
 ```
 
 - Or use method setMatrix(unitName, instanceIndex, matrix4)
 
-```bash
+```js
 const scaleValue = 200;
 
 const position = new THREE.Vector3(100, 0, 100);
@@ -161,18 +161,18 @@ const matrix4 = new THREE.Matrix4();
 
 matrix4.compose(position, quaternion, scale);
 
-setMatrix("soldier", 10, matrix4)
+setMatrix("soldier", 10, matrix4);
 ```
 
 10. Let the material get access to LOD distance values and matrices:
 
-```bash
+```js
 material.setBatchedMesh(batchedEnemies);
 ```
 
 11. Now you are ready to setup animations. The material must know what frame ranges from Float32Array contains certain animations. That's why [Blender addon](https://github.com/GuestGD/AnimationFrameExporter) gonna be so useful. It exports JS helper that contains all necessary lines of code. It allows to just copy-paste all necessary data about frame ranges and transitions. You will find lines like these:
 
-```bash
+```js
 material.setAnimationFrames("soldier", "soldierRest", 0, 0, 30);
 material.setAnimationFrames("soldier", "soldierFire", 1, 27, 30);
 material.setAnimationFrames("soldier", "soldierIdle", 28, 71, 30);
@@ -189,30 +189,23 @@ material.setAnimationTransitions("soldier", "soldierFire", {
 
 Play animation for a range of instances:
 
-```bash
-  material.playAnimationBatched(
-    "soldier",
-    0,
-    10,
-    "soldierFire",
-    "loop",
-    0.75
-  );
+```js
+material.playAnimationBatched("soldier", 0, 10, "soldierFire", "loop", 0.75);
 ```
 
 Play animation for a certain instance:
 
-```bash
+```js
 material.playAnimation("soldier", 5, "soldierFire", "loop", 0.75);
 ```
 
 13. Then in main animate loop:
 
-```bash
-    const delta = new THREE.Clock().getDelta();
+```js
+const delta = new THREE.Clock().getDelta();
 
-    batchedEnemies.update(camera);
-    batchedEnemies.material.update.updateAnimations(delta);
+batchedEnemies.update(camera);
+batchedEnemies.material.update.updateAnimations(delta);
 ```
 
 ### batchedEnemies will not be visible without .update function!
@@ -237,127 +230,120 @@ The final result must be Float32Array containing bones matrices for all desired 
 
 ### Animations setup methods:
 
-```bash
-  setAnimationFrames(
-    unitName,
-    animName,
-    startFrame,
-    endFrame,
-    fps,
-    transit
-  )
+```js
+setAnimationFrames(unitName, animName, startFrame, endFrame, fps, transit);
 ```
 
-```bash
-setAnimationTransitions(unitName, animName, transitions = {})
+```js
+setAnimationTransitions(unitName, animName, (transitions = {}));
 ```
 
-```bash
-setBatchedMesh(batchedMesh)
+```js
+setBatchedMesh(batchedMesh);
 ```
 
 ### Animations managing methods:
 
-```bash
-playAnimation(unitName, localInstanceId, animName, mode, speed)
+```js
+playAnimation(unitName, localInstanceId, animName, mode, speed);
 ```
 
-```bash
-playAnimation(unitName, localInstanceId, animName, mode, speed)
+```js
+playAnimation(unitName, localInstanceId, animName, mode, speed);
 ```
 
-```bash
-  playAnimationBatched(
-    unitName,
-    startInstanceId,
-    endInstanceId,
-    animName,
-    mode,
-    speed
-  )
+```js
+playAnimationBatched(
+  unitName,
+  startInstanceId,
+  endInstanceId,
+  animName,
+  mode,
+  speed
+);
 ```
 
-```bash
-stopAnimation(unitName, localInstanceId)
+```js
+stopAnimation(unitName, localInstanceId);
 ```
 
-```bash
-stopAnimationBatched(unitName, startInstanceId, endInstanceId)
+```js
+stopAnimationBatched(unitName, startInstanceId, endInstanceId);
 ```
 
-```bash
-pauseAnimation(unitName, localInstanceId)
+```js
+pauseAnimation(unitName, localInstanceId);
 ```
 
-```bash
-resumeAnimation(unitName, localInstanceId, newSpeed)
+```js
+resumeAnimation(unitName, localInstanceId, newSpeed);
 ```
 
 ### Unit info methods:
 
-```bash
-isPaused(unitName, localInstanceId)
+```js
+isPaused(unitName, localInstanceId);
 ```
 
-```bash
-isStopped(unitName, localInstanceId)
+```js
+isStopped(unitName, localInstanceId);
 ```
 
-```bash
-isPlaying(unitName, localInstanceId)
+```js
+isPlaying(unitName, localInstanceId);
 ```
 
-```bash
-getInstanceAnimationData(unitName, instanceIndex)
+```js
+getInstanceAnimationData(unitName, instanceIndex);
 ```
 
 ### Transition method:
 
-```bash
-  transitionToAnimation(
-    unitName,
-    localInstanceId,
-    targetAnimName,
-    targetAnimMode,
-    targetAnimSpeed,
-    transitionClipName,
-    transitionClipSpeed,
-    onComplete
-  )
+```js
+transitionToAnimation(
+  unitName,
+  localInstanceId,
+  targetAnimName,
+  targetAnimMode,
+  targetAnimSpeed,
+  transitionClipName,
+  transitionClipSpeed,
+  onComplete
+);
 ```
 
 ### Events methods:
 
-```bash
-createEvent(unitName, animName, frame, callback)
+```js
+createEvent(unitName, animName, frame, callback);
 ```
 
-```bash
-removeEvent(unitName, animName, frame)
+```js
+removeEvent(unitName, animName, frame);
 ```
 
 ### Main update method:
 
-```bash
-updateAnimations(delta)
+```js
+updateAnimations(delta);
 ```
 
 ### Unit states methods:
 
-```bash
-setDistanceState(unitName, config, callBack)
+```js
+setDistanceState(unitName, config, callBack);
 ```
 
-```bash
-getDistanceState(unitName, instanceId)
+```js
+getDistanceState(unitName, instanceId);
 ```
 
-```bash
-setState(unitName, instanceId, stateName)
+```js
+setState(unitName, instanceId, stateName);
 ```
 
-```bash
-getState(unitName, instanceId)
+```js
+getState(unitName, instanceId);
 ```
 
 # [⤴️](#-table-of-contents)
