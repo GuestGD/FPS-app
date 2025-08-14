@@ -12,7 +12,7 @@
 - [Quick Start](#-quick-start)
 - [How to import animations](#-how-to-import-animations)
 - [Material available methods](#-material-methods)
-- [Batched mesh available methods](#-mesh-methods)
+- [Batched mesh available methods](#-batched-mesh-methods)
 - [Usage Examples](#-usage-examples)
 - [Demo installation](#-demo-installation)
 

@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { setupControls } from "./setupControls";
-import { loadSkybox } from "./loadSkybox";
-import { loadKtx2 } from "./loadKtx2";
+import { loadSkybox } from "./loaders/loadSkybox";
+import { loadKtx2 } from "./loaders/loadKtx2";
 import { createEnemies } from "./batchedMesh/createEnemies";
 import { isMobile } from "./mobileControls/isMobile";
 import { setupLilGui } from "./debug/setupLilGui";
+import { loadSoundAssets } from "./sound/loadSoundAssets";
 
 export async function setupScene() {
   // ==============================================
@@ -114,6 +115,8 @@ export async function setupScene() {
     renderer,
     instancesPerUnit
   );
+
+  loadSoundAssets(scene, camera);
 
   return { scene, camera, renderer, batchedEnemies };
 }

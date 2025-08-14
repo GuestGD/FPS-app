@@ -1,10 +1,10 @@
 import * as THREE from "three";
-import { SkinnedBatchMaterial } from "./SkinnedBatchMaterial.js";
+import { BatchedMeshLod } from "./threeSBML/BatchedMeshLod.js";
+import { SkinnedBatchMaterial } from "./threeSBML/SkinnedBatchMaterial.js";
 import { manageAnimationStates } from "./setupAnimations/manageAnimationStates.js";
-import { BatchedMeshLod } from "./BatchedMeshLod.js";
-import { loadKtx2 } from "../loadKtx2.js";
-import { loadGlb } from "../loadGlb.js";
-import { loadBinArray } from "../loadBinArray.js";
+import { loadKtx2 } from "../loaders/loadKtx2.js";
+import { loadGlb } from "../loaders/loadGlb.js";
+import { loadBinArray } from "../loaders/loadBinArray.js";
 import setAnimations from "./setupAnimations/setAnimations.js";
 
 const glbLoaded = {};
@@ -162,9 +162,6 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     spacing: new THREE.Vector3(3000, 0, -3000),
     columns: 10,
   });
-
-  // batchedEnemies.updateMatrixWorld(true);
-  // batchedEnemies.computeBoundingBox();
 
   // ==============================================
   //   SKINNED BATCHED MATERIAL PATTERNS SETUP

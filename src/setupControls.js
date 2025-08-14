@@ -98,6 +98,12 @@ export function updateControls(scene) {
   // const mesh = scene.userData.material.batchedMesh;
 
   if (keys["KeyR"]) {
-    // mesh.unitLookAt("zombie", 0, camera.position, Math.PI);
+    const soundSource = scene.userData.sound;
+
+    const pickRand = Math.ceil(Math.random() * 2);
+    const sound = Object.values(soundSource)[2];
+    if (!sound.isPlaying) {
+      sound.play();
+    }
   }
 }
