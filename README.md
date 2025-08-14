@@ -6,7 +6,7 @@
 
 ---
 
-## 📖 Table of Contents
+## 📖 Table of Contents  
 
 - [Features](#-features)
 - [Quick Start](#-quick-start)
@@ -286,7 +286,7 @@ The final result must be Float32Array containing bones matrices for all desired 
 
 - A character has 50 bones. Each bones has 4x4 matrix so 50\*16 = 800. It means each 800 values of this Float32Array is 1 frame of the character animations. Combine all animations frames into one array this way.
 
-## 📤 Demo installation
+## 📤 Demo installation [⤴️](#-table-of-contents)
 
 ```bash
 git clone https://github.com/GuestGD/threeSBML.git
