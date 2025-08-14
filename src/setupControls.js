@@ -93,11 +93,11 @@ export function updateControls(scene) {
   }
 
   // TESTS
-  const material = scene.userData.material;
-  const camera = scene.userData.camera;
-  const mesh = scene.userData.material.batchedMesh;
+  // const material = scene.userData.material;
+  // const camera = scene.userData.camera;
+  // const mesh = scene.userData.material.batchedMesh;
 
   if (keys["KeyR"]) {
-    mesh.unitLookAt("zombie", 0, camera.position, Math.PI);
+    // mesh.unitLookAt("zombie", 0, camera.position, Math.PI);
   }
 }

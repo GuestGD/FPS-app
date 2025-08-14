@@ -4,7 +4,7 @@ import { RGBELoader } from "three/examples/jsm/Addons.js";
 export async function loadSkybox(scene, skyboxURL) {
   return new Promise((resolve, reject) => {
     new RGBELoader()
-      .setDataType(THREE.FloatType )
+      .setDataType(THREE.HalfFloatType )
       .load(skyboxURL, (texture) => {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.minFilter = THREE.LinearFilter;

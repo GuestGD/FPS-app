@@ -38,12 +38,12 @@ export async function setupScene() {
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     reverseDepthBuffer: true,
-    powerPreference: "high-performance",
+    powerPreference: "high-performance", //high-performance
   });
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setPixelRatio(isMobile() ? pixelRatio : devicePixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
 
@@ -71,7 +71,7 @@ export async function setupScene() {
   const groundSize = Math.max(500 * instancesPerUnit, 50000);
   const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize);
 
-  const repeatValue = Math.max(1 * instancesPerUnit, 50);
+  const repeatValue = Math.max(1.2 * instancesPerUnit, 75);
 
   const groundDiff = await loadKtx2(renderer, "assets/groundDiff.ktx2");
   groundDiff.colorSpace = THREE.SRGBColorSpace;
@@ -88,7 +88,7 @@ export async function setupScene() {
   const groundMaterial = new THREE.MeshStandardMaterial({
     map: groundDiff,
     normalMap: groundNorm,
-    normalScale: new THREE.Vector2(1, 1).multiplyScalar(1.1),
+    normalScale: new THREE.Vector2(1, 1).multiplyScalar(1.2),
     side: THREE.FrontSide,
     transparent: false,
   });

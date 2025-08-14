@@ -128,7 +128,7 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
         instancesAmount: instancesPerUnit,
       },
     },
-    material.material
+    material.getMaterial()
   );
 
   batchedEnemies.setMapIndex("soldier", 0.0); // OPTIONAL - INDEX OF KTX2 ARRAY TEXTURE IS USED BY DEFAULT
