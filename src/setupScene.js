@@ -43,6 +43,8 @@ export async function setupScene() {
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setPixelRatio(isMobile() ? pixelRatio : devicePixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
 
   document.body.onresize = (e) => {

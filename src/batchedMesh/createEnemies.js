@@ -86,6 +86,7 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     },
     unitsData,
     animLodDistance,
+    useAO: false,
   });
 
   // ==============================================
@@ -130,7 +131,7 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     material.material
   );
 
-  batchedEnemies.setMapIndex("soldier", 0.0); // INDEX OF KTX2 ARRAY TEXTURE USED IN MATERIAL
+  batchedEnemies.setMapIndex("soldier", 0.0); // OPTIONAL - INDEX OF KTX2 ARRAY TEXTURE IS USED BY DEFAULT
   batchedEnemies.setMapIndex("mutant", 1.0);
   batchedEnemies.setMapIndex("zombie", 2.0);
 

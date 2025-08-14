@@ -12,7 +12,7 @@ const _stateEvent = {
 };
 
 export class SkinnedBatchMaterial {
-  constructor({ maps, unitsData, animLodDistance }) {
+  constructor({ maps, unitsData, animLodDistance, useAO = false }) {
     this.material = new THREE.MeshStandardMaterial({
       allowOverride: false,
       fog: false,
@@ -27,6 +27,7 @@ export class SkinnedBatchMaterial {
     this.textures = { ...maps };
     this.unitsData = unitsData;
     this.animLodDistance = animLodDistance;
+    this.useAO = useAO;
 
     this.instanceManageTexture = null;
     this.instanceManageArr = null;
@@ -47,7 +48,7 @@ export class SkinnedBatchMaterial {
       USE_TANGENT: !!this.textures.normalMapsArray,
       USE_ROUGHNESS_MAP: !!this.textures.ormMapsArray,
       USE_METALNESS_MAP: !!this.textures.ormMapsArray,
-      USE_AO_MAP: !!this.textures.ormMapsArray,
+      USE_AO_MAP: !!this.useAO,
     };
   }
   // ==============================================
@@ -494,11 +495,11 @@ export class SkinnedBatchMaterial {
         float metalnessFactor = metalness;
 
         #if defined(USE_ROUGHNESS_MAP) || defined(USE_METALNESS_MAP)
-          vec4 texelRoughness = texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex));
+          vec4 texelOrm = texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex));
 
           // reads channel R - ao, G- rough, B - metal, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
-          roughnessFactor *= texelRoughness.g;
-          metalnessFactor *= texelRoughness.b;
+          roughnessFactor *= texelOrm.g;
+          metalnessFactor *= texelOrm.b;
         #endif
         `
       );
@@ -512,8 +513,9 @@ export class SkinnedBatchMaterial {
       shader.fragmentShader = shader.fragmentShader.replace(
         `#include <aomap_fragment>`,
         `
-        #ifdef USE_AO_MAP 
-          float ambientOcclusion = ( texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex)).r - 1.0 ) * aoMapIntensity + 1.0;
+        #if defined(USE_AO_MAP) || defined(USE_ROUGHNESS_MAP) 
+          float ambientOcclusion = ( texelOrm.r - 1.0 ) * aoMapIntensity + 1.0;
+          // float ambientOcclusion = ( texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex)).r - 1.0 ) * aoMapIntensity + 1.0;
           reflectedLight.indirectDiffuse *= ambientOcclusion;
         #endif     
         `
