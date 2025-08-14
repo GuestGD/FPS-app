@@ -62,7 +62,7 @@ export async function loadBinArray(binPath) {
 
 6. Load texture maps of the characters. The maps must be combined to DataArrayTexture or CompressedArrayTexture. KTX2 CompressedArrayTexture is recommended. Here is an example of [KTX-Software](https://github.com/KhronosGroup/KTX-Software) command to create ready to use CompressedArrayTexture with diffuse maps for 3 characters:
 
-```js
+```bash
 ktx create --format R8G8B8_UNORM --layers 3 --assign-tf linear --encode basis-lz --generate-mipmap --mipmap-filter box difuseEnemy1.png difuseEnemy2.png difuseEnemy3.png enemiesDiffArray.ktx2
 ```
 
@@ -344,6 +344,59 @@ setState(unitName, instanceId, stateName);
 
 ```js
 getState(unitName, instanceId);
+```
+
+# [⤴️](#-table-of-contents)
+
+## 🔨 Batched mesh methods
+
+```js
+setMatrix(unitName, instanceIndex, matrix4);
+```
+
+```js
+getMatrix(unitName, instanceIndex);
+```
+
+```js
+placeGrid(
+  unitName,
+  count,
+  (opts = {
+    start,
+    spacing,
+    columns,
+    scale,
+    rot,
+  })
+);
+```
+
+```js
+setMapIndex(unitName, value);
+```
+
+```js
+getUnitInstancesAmount(unitName);
+```
+
+```js
+getUnitInstanceDistance(unitName, instanceIndex);
+```
+
+```js
+unitLookAt(unitName, instanceIndex, targetVector, rotationOffset);
+```
+
+```js
+unitMoveTowards(
+  unitName,
+  instanceIndex,
+  targetVector,
+  lerpFactor,
+  stopDistance,
+  rotateToTarget
+);
 ```
 
 # [⤴️](#-table-of-contents)
