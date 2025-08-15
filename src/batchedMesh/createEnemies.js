@@ -11,10 +11,16 @@ const glbLoaded = {};
 const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
-const animLodDistance = new THREE.Vector2(8000, 15500);
+const animLodDistance = new THREE.Vector2(8000, 15000);
 const geometryLodDistances = [2000, 4000, 7000, 20000];
 
-export async function createEnemies(scene, renderer, instancesPerUnit) {
+export async function createEnemies(
+  scene,
+  renderer,
+  camera,
+  instancesPerUnit,
+  audioSources
+) {
   // ==============================================
   //   MAPS and GEOMETRY PREPARING
   // ==============================================
@@ -170,11 +176,18 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   material.setBatchedMesh(batchedEnemies);
 
   setAnimations(material);
-  manageAnimationStates(scene, material, instancesPerUnit);
+  manageAnimationStates(
+    scene,
+    camera,
+    material,
+    instancesPerUnit,
+    audioSources
+  );
 
   // Temp
   scene.userData.enemies = batchedEnemies;
   scene.userData.material = material;
+  scene.userData.sound = audioSources;
 
   return { batchedEnemies };
 }

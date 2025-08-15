@@ -8,6 +8,8 @@ const keys = {};
 let joystick, joyData, cameraRotator, pointerLock, mobileDevice;
 const speed = 25;
 
+let counter = 0;
+
 export function setupControls(camera, renderer) {
   mobileDevice = isMobile();
 
@@ -97,13 +99,17 @@ export function updateControls(scene) {
   // const camera = scene.userData.camera;
   // const mesh = scene.userData.material.batchedMesh;
 
-  if (keys["KeyR"]) {
-    const soundSource = scene.userData.sound;
+  if (keys["KeyE"]) {
+    counter = (counter + 0.1) % 1;
+    console.log(counter);
+  }
 
-    const pickRand = Math.ceil(Math.random() * 2);
-    const sound = Object.values(soundSource)[2];
-    if (!sound.isPlaying) {
-      sound.play();
-    }
+  if (keys["KeyR"]) {
+    const { src, count } = scene.userData.sound.mutantAttack;
+    const audio = src[count % 5];
+
+    scene.userData.sound.mutantAttack.count = (count + 1) % 5;
+    audio.stop();
+    audio.play();
   }
 }

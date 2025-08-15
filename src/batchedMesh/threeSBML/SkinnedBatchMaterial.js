@@ -11,6 +11,8 @@ const _stateEvent = {
   speed: 0,
 };
 
+const eventMatrix = new THREE.Matrix4();
+
 export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
   constructor({ maps, unitsData, animLodDistance, useAO = false, ...options }) {
     const newDefines = {
@@ -990,6 +992,7 @@ export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
   //              UPDATE LOOP METHOD
   // ==============================================
   updateAnimations(delta) {
+    const batchedMesh = this.batchedMesh;
     const instanceDataTexture = this.instanceManageTexture;
     const instanceDataArr = this.instanceManageArr;
 
@@ -1062,6 +1065,9 @@ export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
           relativeFrame = anim.frameCount - 1;
         }
 
+        const matrixArray = batchedMesh?.matrices?.[unitName];
+        const offset = instanceId * 16;
+
         if (prevRelativeFrame !== relativeFrame) {
           const eventKey = `${unitName}|${state.animName}|${relativeFrame}`;
           if (this.frameEvents[eventKey]) {
@@ -1075,6 +1081,9 @@ export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
                 : anim.startFrame + relativeFrame,
               framesAmount: anim.frameCount,
               lastFrame: anim.frameCount - 1,
+              matrix: eventMatrix.fromArray(matrixArray, offset) || null,
+              distance:
+                batchedMesh?.lodInfo[unitName].unitDist[instanceId] || null,
             });
           }
 
@@ -1090,6 +1099,9 @@ export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
                 : anim.startFrame + relativeFrame,
               framesAmount: anim.frameCount,
               lastFrame: anim.frameCount - 1,
+              matrix: eventMatrix.fromArray(matrixArray, offset) || null,
+              distance:
+                batchedMesh?.lodInfo[unitName].unitDist[instanceId] || null,
             });
             // Remove the private event after triggering
             this._removeTransitionEvent(

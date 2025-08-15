@@ -5,7 +5,7 @@ import { loadKtx2 } from "./loaders/loadKtx2";
 import { createEnemies } from "./batchedMesh/createEnemies";
 import { isMobile } from "./mobileControls/isMobile";
 import { setupLilGui } from "./debug/setupLilGui";
-import { loadSoundAssets } from "./sound/loadSoundAssets";
+import { manageAudio } from "./sound/manageAudio";
 
 export async function setupScene() {
   // ==============================================
@@ -107,16 +107,22 @@ export async function setupScene() {
   scene.userData.camera = camera;
 
   // ==============================================
+  //   AUDIO SETUP
+  // ==============================================
+
+  const { audioSources } = await manageAudio(scene, camera);
+
+  // ==============================================
   //   ENEMIES SETUP
   // ==============================================
 
   const { batchedEnemies } = await createEnemies(
     scene,
     renderer,
-    instancesPerUnit
+    camera,
+    instancesPerUnit,
+    audioSources
   );
-
-  loadSoundAssets(scene, camera);
 
   return { scene, camera, renderer, batchedEnemies };
 }

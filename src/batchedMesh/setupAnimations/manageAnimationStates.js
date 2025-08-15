@@ -2,8 +2,13 @@ import * as THREE from "three";
 import lookAtCamera from "../behavior/lookAtCamera";
 import moveToCamera from "../behavior/moveToCamera";
 
-export function manageAnimationStates(scene, material, instancesPerUnit) {
-  const camera = scene.userData.camera;
+export function manageAnimationStates(
+  scene,
+  camera,
+  material,
+  instancesPerUnit,
+  audioSrc
+) {
   const batchedMesh = material.batchedMesh;
 
   const distanceOffset = 100;
@@ -14,6 +19,17 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
 
   const soldierRunSpd = 0.02;
   const soldierCloseMax = 2000;
+
+  const { src: soldierSrc, count: soldierCount } = audioSrc.soldierAttack;
+
+  material.createEvent("soldier", "soldierFire", 10, (e) => {
+    const currentCount = audioSrc.soldierAttack.count;
+    const unitSrc = soldierSrc[currentCount % soldierSrc.length];
+    audioSrc.soldierAttack.count = (currentCount + 1) % soldierSrc.length;
+
+    unitSrc.stop();
+    unitSrc.play();
+  });
 
   material.setDistanceState(
     "soldier",
@@ -34,6 +50,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
 
       if (e.animName.includes("Run")) {
         const targetPosition = camera.position;
+
         moveToCamera(
           batchedMesh,
           e.unitName,
@@ -64,6 +81,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     (e) => {
       if (e.animName.includes("Run")) {
         const targetPosition = camera.position;
+
         moveToCamera(
           batchedMesh,
           e.unitName,
@@ -98,6 +116,19 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
   const mutantOffset = new THREE.Vector3(-225, 0, -20).applyQuaternion(
     camera.quaternion
   );
+
+  const { src: mutantSrc, count: mutantCount } = audioSrc.mutantAttack;
+
+  material.createEvent("mutant", "mutantPunch", 1, (e) => {
+    const currentCount = audioSrc.mutantAttack.count;
+    const unitSrc = mutantSrc[currentCount % mutantSrc.length];
+    audioSrc.mutantAttack.count = (currentCount + 1) % mutantSrc.length;
+
+    unitSrc.setPlaybackRate(1.5);
+    unitSrc.setVolume(8.0);
+    unitSrc.stop();
+    unitSrc.play();
+  });
 
   material.setDistanceState(
     "mutant",
@@ -148,6 +179,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     (e) => {
       if (e.animName.includes("Run")) {
         const targetPosition = camera.position.clone().add(mutantOffset);
+
         moveToCamera(
           batchedMesh,
           e.unitName,
@@ -212,6 +244,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
 
       if (e.animName.includes("Run")) {
         const targetPosition = camera.position.clone().add(zombieOffset);
+
         moveToCamera(
           batchedMesh,
           e.unitName,
@@ -242,6 +275,7 @@ export function manageAnimationStates(scene, material, instancesPerUnit) {
     (e) => {
       if (e.animName.includes("Run")) {
         const targetPosition = camera.position.clone().add(zombieOffset);
+
         moveToCamera(
           batchedMesh,
           e.unitName,
