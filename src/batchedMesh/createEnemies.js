@@ -1,20 +1,26 @@
 import * as THREE from "three";
-import { SkinnedBatchMaterial } from "./SkinnedBatchMaterial.js";
+import { BatchedMeshLod } from "./threeSBML/BatchedMeshLod.js";
+import { SkinnedBatchMaterial } from "./threeSBML/SkinnedBatchMaterial.js";
 import { manageAnimationStates } from "./setupAnimations/manageAnimationStates.js";
-import { BatchedMeshLod } from "./BatchedMeshLod.js";
-import { loadKtx2 } from "../loadKtx2.js";
-import { loadGlb } from "../loadGlb.js";
-import { loadBinArray } from "../loadBinArray.js";
+import { loadKtx2 } from "../loaders/loadKtx2.js";
+import { loadGlb } from "../loaders/loadGlb.js";
+import { loadBinArray } from "../loaders/loadBinArray.js";
 import setAnimations from "./setupAnimations/setAnimations.js";
 
 const glbLoaded = {};
 const ktxLoaded = {};
 const skinnedMeshesLods = {};
 const unitsData = {};
-const animLodDistance = new THREE.Vector2(8000, 15500);
+const animLodDistance = new THREE.Vector2(8000, 15000);
 const geometryLodDistances = [2000, 4000, 7000, 20000];
 
-export async function createEnemies(scene, renderer, instancesPerUnit) {
+export async function createEnemies(
+  scene,
+  renderer,
+  camera,
+  instancesPerUnit,
+  audioSources
+) {
   // ==============================================
   //   MAPS and GEOMETRY PREPARING
   // ==============================================
@@ -86,6 +92,11 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     },
     unitsData,
     animLodDistance,
+    useAO: false,
+    metalness: 0.4,
+    roughness: 0.5,
+    envMap: scene.environment,
+    envMapIntensity: 1.0,
   });
 
   // ==============================================
@@ -127,10 +138,10 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
         instancesAmount: instancesPerUnit,
       },
     },
-    material.material
+    material
   );
 
-  batchedEnemies.setMapIndex("soldier", 0.0); // INDEX OF KTX2 ARRAY TEXTURE USED IN MATERIAL
+  batchedEnemies.setMapIndex("soldier", 0.0); // OPTIONAL - INDEX OF KTX2 ARRAY TEXTURE IS USED BY DEFAULT
   batchedEnemies.setMapIndex("mutant", 1.0);
   batchedEnemies.setMapIndex("zombie", 2.0);
 
@@ -158,9 +169,6 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
     columns: 10,
   });
 
-  batchedEnemies.updateMatrixWorld(true);
-  batchedEnemies.computeBoundingBox();
-
   // ==============================================
   //   SKINNED BATCHED MATERIAL PATTERNS SETUP
   // ==============================================
@@ -168,11 +176,18 @@ export async function createEnemies(scene, renderer, instancesPerUnit) {
   material.setBatchedMesh(batchedEnemies);
 
   setAnimations(material);
-  manageAnimationStates(scene, material, instancesPerUnit);
+  manageAnimationStates(
+    scene,
+    camera,
+    material,
+    instancesPerUnit,
+    audioSources
+  );
 
   // Temp
   scene.userData.enemies = batchedEnemies;
   scene.userData.material = material;
+  scene.userData.sound = audioSources;
 
   return { batchedEnemies };
 }

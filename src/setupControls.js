@@ -8,6 +8,8 @@ const keys = {};
 let joystick, joyData, cameraRotator, pointerLock, mobileDevice;
 const speed = 25;
 
+let counter = 0;
+
 export function setupControls(camera, renderer) {
   mobileDevice = isMobile();
 
@@ -93,11 +95,21 @@ export function updateControls(scene) {
   }
 
   // TESTS
-  const material = scene.userData.material;
-  const camera = scene.userData.camera;
-  const mesh = scene.userData.material.batchedMesh;
+  // const material = scene.userData.material;
+  // const camera = scene.userData.camera;
+  // const mesh = scene.userData.material.batchedMesh;
+
+  if (keys["KeyE"]) {
+    counter = (counter + 0.1) % 1;
+    console.log(counter);
+  }
 
   if (keys["KeyR"]) {
-    mesh.unitLookAt("zombie", 0, camera.position, Math.PI);
+    const { src, count } = scene.userData.sound.mutantAttack;
+    const audio = src[count % 5];
+
+    scene.userData.sound.mutantAttack.count = (count + 1) % 5;
+    audio.stop();
+    audio.play();
   }
 }

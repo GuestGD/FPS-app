@@ -11,22 +11,30 @@ const _stateEvent = {
   speed: 0,
 };
 
-export class SkinnedBatchMaterial {
-  constructor({ maps, unitsData, animLodDistance }) {
-    this.material = new THREE.MeshStandardMaterial({
-      allowOverride: false,
-      fog: false,
-      transparent: false,
-      side: THREE.FrontSide,
+const eventMatrix = new THREE.Matrix4();
+
+export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
+  constructor({ maps, unitsData, animLodDistance, useAO = false, ...options }) {
+    const newDefines = {
+      USE_NORMAL_MAP: !!maps.normalMapsArray,
+      USE_TANGENT: !!maps.normalMapsArray,
+      USE_ROUGHNESS_MAP: !!maps.ormMapsArray,
+      USE_METALNESS_MAP: !!maps.ormMapsArray,
+      USE_AO_MAP: !!useAO,
+      ...(options.defines || {}),
+    };
+
+    super({
+      ...options,
+      defines: newDefines,
     });
 
     this.batchedMesh = null;
 
-    this.material.update = this;
-
     this.textures = { ...maps };
     this.unitsData = unitsData;
     this.animLodDistance = animLodDistance;
+    this.useAO = useAO;
 
     this.instanceManageTexture = null;
     this.instanceManageArr = null;
@@ -41,14 +49,6 @@ export class SkinnedBatchMaterial {
     this._createInstancesManageTexture(unitsData);
 
     this._transitionEvents = {};
-
-    this.material.defines = {
-      USE_NORMAL_MAP: !!this.textures.normalMapsArray,
-      USE_TANGENT: !!this.textures.normalMapsArray,
-      USE_ROUGHNESS_MAP: !!this.textures.ormMapsArray,
-      USE_METALNESS_MAP: !!this.textures.ormMapsArray,
-      USE_AO_MAP: !!this.textures.ormMapsArray,
-    };
   }
   // ==============================================
   //              PRIVATE METHODS
@@ -193,8 +193,8 @@ export class SkinnedBatchMaterial {
     const boneAtlasTwo = Object.values(this.materialData)[1].boneAtlas;
     const boneAtlasThree = Object.values(this.materialData)[2].boneAtlas;
 
-    this.material.onBeforeCompile = (shader) => {
-      Object.assign(shader.defines, this.material.defines);
+    this.onBeforeCompile = (shader) => {
+      Object.assign(shader.defines, this.defines);
 
       shader.uniforms.instanceManageTexture = {
         value: this.instanceManageTexture,
@@ -494,11 +494,11 @@ export class SkinnedBatchMaterial {
         float metalnessFactor = metalness;
 
         #if defined(USE_ROUGHNESS_MAP) || defined(USE_METALNESS_MAP)
-          vec4 texelRoughness = texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex));
+          vec4 texelOrm = texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex));
 
           // reads channel R - ao, G- rough, B - metal, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
-          roughnessFactor *= texelRoughness.g;
-          metalnessFactor *= texelRoughness.b;
+          roughnessFactor *= texelOrm.g;
+          metalnessFactor *= texelOrm.b;
         #endif
         `
       );
@@ -512,8 +512,9 @@ export class SkinnedBatchMaterial {
       shader.fragmentShader = shader.fragmentShader.replace(
         `#include <aomap_fragment>`,
         `
-        #ifdef USE_AO_MAP 
-          float ambientOcclusion = ( texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex)).r - 1.0 ) * aoMapIntensity + 1.0;
+        #if defined(USE_AO_MAP) || defined(USE_ROUGHNESS_MAP) 
+          float ambientOcclusion = ( texelOrm.r - 1.0 ) * aoMapIntensity + 1.0;
+          // float ambientOcclusion = ( texture(ormMapsArray, vec3(vUv.x, vUv.y, vMapIndex)).r - 1.0 ) * aoMapIntensity + 1.0;
           reflectedLight.indirectDiffuse *= ambientOcclusion;
         #endif     
         `
@@ -968,11 +969,6 @@ export class SkinnedBatchMaterial {
 
   /* ------------------------------------------------------------- */
   /* ------------------------------------------------------------- */
-  getMaterial() {
-    return this.material;
-  }
-  /* ------------------------------------------------------------- */
-  /* ------------------------------------------------------------- */
   getInstanceAnimationData(unitName, instanceIndex) {
     if (
       !this.materialData ||
@@ -996,6 +992,7 @@ export class SkinnedBatchMaterial {
   //              UPDATE LOOP METHOD
   // ==============================================
   updateAnimations(delta) {
+    const batchedMesh = this.batchedMesh;
     const instanceDataTexture = this.instanceManageTexture;
     const instanceDataArr = this.instanceManageArr;
 
@@ -1068,6 +1065,9 @@ export class SkinnedBatchMaterial {
           relativeFrame = anim.frameCount - 1;
         }
 
+        const matrixArray = batchedMesh?.matrices?.[unitName];
+        const offset = instanceId * 16;
+
         if (prevRelativeFrame !== relativeFrame) {
           const eventKey = `${unitName}|${state.animName}|${relativeFrame}`;
           if (this.frameEvents[eventKey]) {
@@ -1081,6 +1081,9 @@ export class SkinnedBatchMaterial {
                 : anim.startFrame + relativeFrame,
               framesAmount: anim.frameCount,
               lastFrame: anim.frameCount - 1,
+              matrix: eventMatrix.fromArray(matrixArray, offset) || null,
+              distance:
+                batchedMesh?.lodInfo[unitName].unitDist[instanceId] || null,
             });
           }
 
@@ -1096,6 +1099,9 @@ export class SkinnedBatchMaterial {
                 : anim.startFrame + relativeFrame,
               framesAmount: anim.frameCount,
               lastFrame: anim.frameCount - 1,
+              matrix: eventMatrix.fromArray(matrixArray, offset) || null,
+              distance:
+                batchedMesh?.lodInfo[unitName].unitDist[instanceId] || null,
             });
             // Remove the private event after triggering
             this._removeTransitionEvent(

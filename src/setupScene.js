@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { setupControls } from "./setupControls";
-import { loadSkybox } from "./loadSkybox";
-import { loadKtx2 } from "./loadKtx2";
+import { loadSkybox } from "./loaders/loadSkybox";
+import { loadKtx2 } from "./loaders/loadKtx2";
 import { createEnemies } from "./batchedMesh/createEnemies";
 import { isMobile } from "./mobileControls/isMobile";
 import { setupLilGui } from "./debug/setupLilGui";
+import { manageAudio } from "./sound/manageAudio";
 
 export async function setupScene() {
   // ==============================================
@@ -38,11 +39,13 @@ export async function setupScene() {
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     reverseDepthBuffer: true,
-    powerPreference: "high-performance",
+    powerPreference: "high-performance", //high-performance
   });
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setPixelRatio(isMobile() ? pixelRatio : devicePixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
 
   document.body.onresize = (e) => {
@@ -69,7 +72,7 @@ export async function setupScene() {
   const groundSize = Math.max(500 * instancesPerUnit, 50000);
   const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize);
 
-  const repeatValue = Math.max(1 * instancesPerUnit, 50);
+  const repeatValue = Math.max(1.2 * instancesPerUnit, 75);
 
   const groundDiff = await loadKtx2(renderer, "assets/groundDiff.ktx2");
   groundDiff.colorSpace = THREE.SRGBColorSpace;
@@ -86,7 +89,7 @@ export async function setupScene() {
   const groundMaterial = new THREE.MeshStandardMaterial({
     map: groundDiff,
     normalMap: groundNorm,
-    normalScale: new THREE.Vector2(1, 1).multiplyScalar(1.1),
+    normalScale: new THREE.Vector2(1, 1).multiplyScalar(1.2),
     side: THREE.FrontSide,
     transparent: false,
   });
@@ -104,13 +107,21 @@ export async function setupScene() {
   scene.userData.camera = camera;
 
   // ==============================================
+  //   AUDIO SETUP
+  // ==============================================
+
+  const { audioSources } = await manageAudio(scene, camera);
+
+  // ==============================================
   //   ENEMIES SETUP
   // ==============================================
 
   const { batchedEnemies } = await createEnemies(
     scene,
     renderer,
-    instancesPerUnit
+    camera,
+    instancesPerUnit,
+    audioSources
   );
 
   return { scene, camera, renderer, batchedEnemies };

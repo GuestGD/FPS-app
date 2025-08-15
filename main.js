@@ -24,7 +24,7 @@ function animate() {
 
   if (batchedEnemies) {
     batchedEnemies.update(camera);
-    batchedEnemies.material.update.updateAnimations(delta);
+    batchedEnemies.material.updateAnimations(delta);
   }
 
   renderer.render(scene, camera);
