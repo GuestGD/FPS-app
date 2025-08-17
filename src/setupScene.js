@@ -102,10 +102,6 @@ export async function setupScene() {
   );
   scene.add(groundMesh);
 
-  // Temp
-
-  scene.userData.camera = camera;
-
   // ==============================================
   //   AUDIO SETUP
   // ==============================================

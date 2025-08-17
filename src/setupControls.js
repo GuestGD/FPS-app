@@ -4,12 +4,13 @@ import { MobileCameraRotator } from "./mobileControls/MobileCameraRotator";
 import { isMobile } from "./mobileControls/isMobile";
 import * as THREE from "three";
 
+const speed = 25;
 const keys = {};
 let joystick, joyData, cameraRotator, pointerLock, mobileDevice;
-const speed = 25;
 
-let counter = 0;
-
+// ==============================================
+//   FIRST SETUP
+// ==============================================
 export function setupControls(camera, renderer) {
   mobileDevice = isMobile();
 
@@ -64,6 +65,9 @@ export function setupControls(camera, renderer) {
   return {};
 }
 
+// ==============================================
+//   UPDATE FUNCTION
+// ==============================================
 export function updateControls(scene) {
   if (!pointerLock) return;
 
@@ -92,24 +96,5 @@ export function updateControls(scene) {
   }
   if (keys["KeyA"]) {
     pointerLock.moveRight(-speed);
-  }
-
-  // TESTS
-  // const material = scene.userData.material;
-  // const camera = scene.userData.camera;
-  // const mesh = scene.userData.material.batchedMesh;
-
-  if (keys["KeyE"]) {
-    counter = (counter + 0.1) % 1;
-    console.log(counter);
-  }
-
-  if (keys["KeyR"]) {
-    const { src, count } = scene.userData.sound.mutantAttack;
-    const audio = src[count % 5];
-
-    scene.userData.sound.mutantAttack.count = (count + 1) % 5;
-    audio.stop();
-    audio.play();
   }
 }

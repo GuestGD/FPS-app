@@ -11,15 +11,18 @@ export async function setupLilGui() {
   dom.style.left = "50%";
   dom.style.top = "0px";
   dom.style.transform = "translateX(-50%)";
-  dom.style.width = "40vw";
   dom.style.zIndex = "9999";
+  dom.style.width = "40vw";
 
   gui.add(params, "enemiesAmount", 10, 200, 10).name("Enemies per unit type");
 
-  if (mobileDevice)
+  if (mobileDevice) {
+    dom.style.width = "100vw";
+
     gui
       .add(params, "pixelRatio", 1.0, devicePixelRatio, 0.1)
       .name("Pixel ratio");
+  }
 
   await new Promise((resolve) => {
     const btn = gui

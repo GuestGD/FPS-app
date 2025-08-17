@@ -6,7 +6,7 @@ const audioPaths = {
   zombieAttack: "assets/sounds/mutantAttack.mp3",
 };
 
-const sameAudioLimit = 5;
+const sameAudioLimit = 4;
 
 export async function manageAudio(scene, camera) {
   const audioSources = {};
@@ -16,16 +16,22 @@ export async function manageAudio(scene, camera) {
   const listener = new THREE.AudioListener();
   camera.add(listener);
 
-  // Create an array of promises for all sound loads
   const loadPromises = Object.entries(audioPaths).map(([name, path]) => {
     return audioLoader.loadAsync(path).then((buffer) => {
       const unitSourceArr = Array.from({ length: sameAudioLimit }, (e) => {
         const audioSource = new THREE.PositionalAudio(listener);
-        audioSource.detune = -100;
+
+        if (name.includes("soldier")) {
+          audioSource.setRefDistance(600);
+          audioSource.setVolume(0.2);
+        } else {
+          audioSource.setRefDistance(100000);
+          audioSource.setVolume(1.0);
+          audioSource.setDetune(-1000);
+          audioSource.setPlaybackRate(1.5);
+        }
 
         audioSource.setBuffer(buffer);
-        audioSource.setRefDistance(2000);
-        audioSource.setVolume(1.0);
         audioSource.setRolloffFactor(1);
         audioSource.setDistanceModel("inverse");
 
@@ -40,7 +46,6 @@ export async function manageAudio(scene, camera) {
     });
   });
 
-  // Wait for all sounds to load
   await Promise.all(loadPromises);
 
   return { audioSources };

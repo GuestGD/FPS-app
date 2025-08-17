@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+const MAX_BONE_ATLAS_COUNT = 10;
+
 const _stateEvent = {
   unitName: "",
   instanceId: 0,
@@ -189,241 +191,225 @@ export class SkinnedBatchMaterial extends THREE.MeshStandardMaterial {
   // ==============================================
 
   _patchMaterial() {
-    const boneAtlasOne = Object.values(this.materialData)[0].boneAtlas;
-    const boneAtlasTwo = Object.values(this.materialData)[1].boneAtlas;
-    const boneAtlasThree = Object.values(this.materialData)[2].boneAtlas;
+    const assignBoneAtlas = (shader, index, name) => {
+      const atlas = boneAtlases[index];
+      if (!atlas?.image) return;
+
+      shader.uniforms[name] = { value: atlas };
+      shader.uniforms[`${name}Size`] = {
+        value: new THREE.Vector2(atlas.image.width, atlas.image.height),
+      };
+    };
+
+    const unitsUsedAmount = Math.min(
+      Object.keys(this.materialData).length,
+      MAX_BONE_ATLAS_COUNT
+    );
+    const boneAtlases = Object.values(this.materialData)
+      .slice(0, unitsUsedAmount)
+      .map((item) => item.boneAtlas)
+      .filter((atlas) => atlas?.image);
 
     this.onBeforeCompile = (shader) => {
       Object.assign(shader.defines, this.defines);
 
-      shader.uniforms.instanceManageTexture = {
-        value: this.instanceManageTexture,
-      };
-      shader.uniforms.boneAtlasOne = { value: boneAtlasOne };
-      shader.uniforms.boneAtlasOneSize = {
-        value: new THREE.Vector2(
-          boneAtlasOne.image.width,
-          boneAtlasOne.image.height
-        ),
-      };
-      shader.uniforms.boneAtlasTwo = { value: boneAtlasTwo };
-      shader.uniforms.boneAtlasTwoSize = {
-        value: new THREE.Vector2(
-          boneAtlasTwo.image.width,
-          boneAtlasTwo.image.height
-        ),
-      };
-      shader.uniforms.boneAtlasThree = { value: boneAtlasThree };
-      shader.uniforms.boneAtlasThreeSize = {
-        value: new THREE.Vector2(
-          boneAtlasThree.image.width,
-          boneAtlasThree.image.height
-        ),
-      };
-      shader.uniforms.animLodDistance = {
-        value: this.animLodDistance || new THREE.Vector2(2000, 5000),
-      };
+      // Declare static uniforms
+      let uniformDeclarations = `
+        uniform sampler2D instanceManageTexture;
+        uniform vec2 animLodDistance;
+        
+        attribute vec4 skinIndex;
+        attribute vec4 skinWeight;
+        attribute highp float unitIndex;
+        attribute float instanceIndex;
+        attribute float mapIndex;
+        attribute float instancesAmount;
+        varying float vMapIndex;
+        varying vec2 vUv;
+      `;
 
-      shader.uniforms.maps = { value: this.textures.mapsArray };
-      shader.uniforms.normalMaps = { value: this.textures.normalMapsArray };
-      shader.uniforms.ormMapsArray = {
-        value: this.textures.ormMapsArray,
-      };
-      shader.uniforms.normalScale = {
-        value: new THREE.Vector2(1.0, 1.0),
-      };
-      shader.uniforms.aoMapIntensity = {
-        value: 1.0,
-      };
+      // Generate texture and size uniform declarations and assignments
+      for (let i = 0; i < unitsUsedAmount; i++) {
+        const name = `boneAtlas${i + 1}`;
+        assignBoneAtlas(shader, i, name);
 
-      shader.vertexShader =
-        `
-          uniform sampler2D instanceManageTexture;
+        uniformDeclarations += `
+          uniform sampler2D ${name};
+          uniform vec2 ${name}Size;
+        `;
+      }
 
-          uniform sampler2D boneAtlasOne;
-          uniform sampler2D boneAtlasTwo;
-          uniform sampler2D boneAtlasThree;
+      // Generate getBoneMatrix function dynamically
+      let getBoneMatrixFunction = `
+        mat4 getBoneMatrix(float boneIdx, float frame, float unitIndex) {
+          vec2 size;
+          vec4 v0, v1, v2, v3;
+      `;
 
-          uniform vec2 boneAtlasOneSize;
-          uniform vec2 boneAtlasTwoSize;
-          uniform vec2 boneAtlasThreeSize;
+      for (let i = 0; i < unitsUsedAmount; i++) {
+        const condition =
+          i === 0 ? `if (unitIndex < 0.5)` : `else if (unitIndex < ${i + 0.5})`;
 
-          uniform vec2 animLodDistance;
+        const name = `boneAtlas${i + 1}`;
 
-          attribute vec4 skinIndex;
-          attribute vec4 skinWeight;
-
-          attribute highp float unitIndex; // 0 → boneAtlasOne, 1 → boneAtlasTwo, etc.
-          attribute float instanceIndex;
-          attribute float mapIndex;
-          attribute float instancesAmount;
-          varying float vMapIndex;
-          varying vec2 vUv;
-
-
-          mat4 getBoneMatrix(float boneIdx,
-                            float frame,
-                            float unitIndex)   // 0,1,2
-          {
-              vec2 size;
-              vec4 v0, v1, v2, v3;
-
-              if (unitIndex < 0.5) {                      // atlas 0
-                  size = boneAtlasOneSize;
-                  float x = boneIdx * 4.0 + 0.5;
-                  float y = frame + 0.5;
-                  vec2 uv = vec2(x / size.x, y / size.y);
-                  v0 = texture(boneAtlasOne, uv);
-                  v1 = texture(boneAtlasOne, uv + vec2(1.0 / size.x, 0.0));
-                  v2 = texture(boneAtlasOne, uv + vec2(2.0 / size.x, 0.0));
-                  v3 = texture(boneAtlasOne, uv + vec2(3.0 / size.x, 0.0));
-              }
-              else if (unitIndex < 1.5) {                 // atlas 1
-                  size = boneAtlasTwoSize;
-                  float x = boneIdx * 4.0 + 0.5;
-                  float y = frame + 0.5;
-                  vec2 uv = vec2(x / size.x, y / size.y);
-                  v0 = texture(boneAtlasTwo, uv);
-                  v1 = texture(boneAtlasTwo, uv + vec2(1.0 / size.x, 0.0));
-                  v2 = texture(boneAtlasTwo, uv + vec2(2.0 / size.x, 0.0));
-                  v3 = texture(boneAtlasTwo, uv + vec2(3.0 / size.x, 0.0));
-              }
-              else {                                      // atlas 2
-                  size = boneAtlasThreeSize;
-                  float x = boneIdx * 4.0 + 0.5;
-                  float y = frame + 0.5;
-                  vec2 uv = vec2(x / size.x, y / size.y);
-                  v0 = texture(boneAtlasThree, uv);
-                  v1 = texture(boneAtlasThree, uv + vec2(1.0 / size.x, 0.0));
-                  v2 = texture(boneAtlasThree, uv + vec2(2.0 / size.x, 0.0));
-                  v3 = texture(boneAtlasThree, uv + vec2(3.0 / size.x, 0.0));
-              }
-              return mat4(v0, v1, v2, v3);
+        getBoneMatrixFunction += `
+          ${condition} {                
+            size = ${name}Size;
+            float x = boneIdx * 4.0 + 0.5;
+            float y = frame + 0.5;
+            vec2 uv = vec2(x / size.x, y / size.y);
+            v0 = texture(${name}, uv);
+            v1 = texture(${name}, uv + vec2(1.0 / size.x, 0.0));
+            v2 = texture(${name}, uv + vec2(2.0 / size.x, 0.0));
+            v3 = texture(${name}, uv + vec2(3.0 / size.x, 0.0));
           }
+        `;
+      }
 
-          vec4 skinVertexClose(vec4 pos, float frame, float nextFrame, float mixFactor, float unitIndex) {
-              mat4 skinMatrixCurrent =
-                  getBoneMatrix(skinIndex.x, frame, unitIndex) * skinWeight.x +
-                  getBoneMatrix(skinIndex.y, frame, unitIndex) * skinWeight.y +
-                  getBoneMatrix(skinIndex.z, frame, unitIndex) * skinWeight.z +
-                  getBoneMatrix(skinIndex.w, frame, unitIndex) * skinWeight.w;
+      getBoneMatrixFunction += `
+        return mat4(v0, v1, v2, v3);
+        }
+      `;
 
-              mat4 skinMatrixNext =
-                  getBoneMatrix(skinIndex.x, nextFrame, unitIndex) * skinWeight.x +
-                  getBoneMatrix(skinIndex.y, nextFrame, unitIndex) * skinWeight.y +
-                  getBoneMatrix(skinIndex.z, nextFrame, unitIndex) * skinWeight.z +
-                  getBoneMatrix(skinIndex.w, nextFrame, unitIndex) * skinWeight.w;
+      // Skinning functions
+      const skinningFunctions = `
+        vec4 skinVertexClose(vec4 pos, float frame, float nextFrame, float mixFactor, float unitIndex) {
+            mat4 skinMatrixCurrent =
+                getBoneMatrix(skinIndex.x, frame, unitIndex) * skinWeight.x +
+                getBoneMatrix(skinIndex.y, frame, unitIndex) * skinWeight.y +
+                getBoneMatrix(skinIndex.z, frame, unitIndex) * skinWeight.z +
+                getBoneMatrix(skinIndex.w, frame, unitIndex) * skinWeight.w;
 
-              mat4 skinMatrix = mat4(
+            mat4 skinMatrixNext =
+                getBoneMatrix(skinIndex.x, nextFrame, unitIndex) * skinWeight.x +
+                getBoneMatrix(skinIndex.y, nextFrame, unitIndex) * skinWeight.y +
+                getBoneMatrix(skinIndex.z, nextFrame, unitIndex) * skinWeight.z +
+                getBoneMatrix(skinIndex.w, nextFrame, unitIndex) * skinWeight.w;
+
+            mat4 skinMatrix = mat4(
+              mix(skinMatrixCurrent[0], skinMatrixNext[0], mixFactor),
+              mix(skinMatrixCurrent[1], skinMatrixNext[1], mixFactor),
+              mix(skinMatrixCurrent[2], skinMatrixNext[2], mixFactor),
+              mix(skinMatrixCurrent[3], skinMatrixNext[3], mixFactor)
+            );
+            return skinMatrix * pos;
+        }
+
+        vec4 skinVertexMiddle(vec4 pos, float frame, float nextFrame, float mixFactor, float unitIndex) {
+            // --- pick the two largest weights (and their indices) ----------
+            vec4 w   = skinWeight;
+            vec4 idx = skinIndex;
+
+            // bubble-sort the first three positions to bring the two biggest to .x and .y
+            if (w.y > w.x) { float tw = w.x;  w.x  = w.y;  w.y  = tw;
+                            float ti = idx.x; idx.x = idx.y; idx.y = ti; }
+            if (w.z > w.y) { float tw = w.y;  w.y  = w.z;  w.z  = tw;
+                            float ti = idx.y; idx.y = idx.z; idx.z = ti; }
+            if (w.y > w.x) { float tw = w.x;  w.x  = w.y;  w.y  = tw;
+                            float ti = idx.x; idx.x = idx.y; idx.y = ti; }
+
+            float bone0 = idx.x;
+            float bone1 = idx.y;
+            float w0    = w.x;
+            float w1    = w.y;
+
+            // --- fetch matrices for both bones -----------------------------
+            mat4 m0c = getBoneMatrix(bone0, frame,     unitIndex);
+            mat4 m0n = getBoneMatrix(bone0, nextFrame, unitIndex);
+            mat4 m1c = getBoneMatrix(bone1, frame,     unitIndex);
+            mat4 m1n = getBoneMatrix(bone1, nextFrame, unitIndex);
+
+            mat4 skinMatrixCurrent = m0c * w0 + m1c * w1;
+            mat4 skinMatrixNext    = m0n * w0 + m1n * w1;
+
+            mat4 skinMatrix = mat4(
                 mix(skinMatrixCurrent[0], skinMatrixNext[0], mixFactor),
                 mix(skinMatrixCurrent[1], skinMatrixNext[1], mixFactor),
                 mix(skinMatrixCurrent[2], skinMatrixNext[2], mixFactor),
                 mix(skinMatrixCurrent[3], skinMatrixNext[3], mixFactor)
-              );
-              return skinMatrix * pos;
-          }
+            );
+            return skinMatrix * pos;
+        }
 
-          vec4 skinVertexMiddle(vec4 pos, float frame, float nextFrame, float mixFactor, float unitIndex)
-          {
-              // --- pick the two largest weights (and their indices) ----------
-              vec4 w   = skinWeight;
-              vec4 idx = skinIndex;
+        vec4 skinVertexFar(vec4 pos, float frame, float unitIndex) {
+            // strongest bone only
+            float boneIdx = skinIndex.x;
+            if (skinWeight.y > skinWeight.x) boneIdx = skinIndex.y;
+            if (skinWeight.z > max(skinWeight.x, skinWeight.y)) boneIdx = skinIndex.z;
+            if (skinWeight.w > max(max(skinWeight.x, skinWeight.y), skinWeight.z)) boneIdx = skinIndex.w;
 
-              // bubble-sort the first three positions to bring the two biggest to .x and .y
-              if (w.y > w.x) { float tw = w.x;  w.x  = w.y;  w.y  = tw;
-                              float ti = idx.x; idx.x = idx.y; idx.y = ti; }
-              if (w.z > w.y) { float tw = w.y;  w.y  = w.z;  w.z  = tw;
-                              float ti = idx.y; idx.y = idx.z; idx.z = ti; }
-              if (w.y > w.x) { float tw = w.x;  w.x  = w.y;  w.y  = tw;
-                              float ti = idx.x; idx.x = idx.y; idx.y = ti; }
+            mat4 skinMatrix = getBoneMatrix(boneIdx, frame, unitIndex);
+            return skinMatrix * pos;
+        }
 
-              float bone0 = idx.x;
-              float bone1 = idx.y;
-              float w0    = w.x;
-              float w1    = w.y;
+        vec3 getInstanceData(float index, float textureHeight) {
+            // Since texture width is 4 (RGBA), we sample at x=0.5 (center of first texel)
+            // and move down rows based on instanceIndex
+            vec4 data = texture2D(instanceManageTexture, vec2(0.5, ((index) + 0.5) / textureHeight));
+            // Assuming data.r = frame, data.g = nextFrame, data.b = mixFactor
+            return vec3(data.r, data.g, data.b);
+        }
+      `;
 
-              // --- fetch matrices for both bones -----------------------------
-              mat4 m0c = getBoneMatrix(bone0, frame,     unitIndex);
-              mat4 m0n = getBoneMatrix(bone0, nextFrame, unitIndex);
-              mat4 m1c = getBoneMatrix(bone1, frame,     unitIndex);
-              mat4 m1n = getBoneMatrix(bone1, nextFrame, unitIndex);
+      // Final vertex shader
+      shader.vertexShader =
+        uniformDeclarations +
+        getBoneMatrixFunction +
+        skinningFunctions +
+        shader.vertexShader;
 
-              mat4 skinMatrixCurrent = m0c * w0 + m1c * w1;
-              mat4 skinMatrixNext    = m0n * w0 + m1n * w1;
-
-              mat4 skinMatrix = mat4(
-                  mix(skinMatrixCurrent[0], skinMatrixNext[0], mixFactor),
-                  mix(skinMatrixCurrent[1], skinMatrixNext[1], mixFactor),
-                  mix(skinMatrixCurrent[2], skinMatrixNext[2], mixFactor),
-                  mix(skinMatrixCurrent[3], skinMatrixNext[3], mixFactor)
-              );
-              return skinMatrix * pos;
-          }
-
-          vec4 skinVertexFar(vec4 pos, float frame, float unitIndex)
-          {
-              // strongest bone only
-              float boneIdx = skinIndex.x;
-              if (skinWeight.y > skinWeight.x) boneIdx = skinIndex.y;
-              if (skinWeight.z > max(skinWeight.x, skinWeight.y)) boneIdx = skinIndex.z;
-              if (skinWeight.w > max(max(skinWeight.x, skinWeight.y), skinWeight.z)) boneIdx = skinIndex.w;
-
-              mat4 skinMatrix = getBoneMatrix(boneIdx, frame, unitIndex);
-              return skinMatrix * pos;
-          }
-
-          vec3 getInstanceData(float index, float textureHeight) {
-              // Since texture width is 4 (RGBA), we sample at x=0.5 (center of first texel)
-              // and move down rows based on instanceIndex
-              vec4 data = texture2D(instanceManageTexture, vec2(0.5, ((index) + 0.5) / textureHeight));
-              // Assuming data.r = frame, data.g = nextFrame, data.b = mixFactor
-              return vec3(data.r, data.g, data.b);
-          }
-
-        ` + shader.vertexShader;
+      shader.uniforms.instanceManageTexture = {
+        value: this.instanceManageTexture,
+      };
+      shader.uniforms.animLodDistance = {
+        value: this.animLodDistance || new THREE.Vector2(2000, 5000),
+      };
+      shader.uniforms.maps = { value: this.textures.mapsArray };
+      shader.uniforms.normalMaps = { value: this.textures.normalMapsArray };
+      shader.uniforms.ormMapsArray = { value: this.textures.ormMapsArray };
+      shader.uniforms.normalScale = { value: new THREE.Vector2(1.0, 1.0) };
+      shader.uniforms.aoMapIntensity = { value: 1.0 };
 
       shader.vertexShader = shader.vertexShader.replace(
         `#include <project_vertex>`,
         `
-          vec4 distanceCheckPos = vec4(transformed, 1.0);
-          
-          #ifdef USE_BATCHING
-            distanceCheckPos = batchingMatrix * distanceCheckPos;
-          #endif
+        vec4 distanceCheckPos = vec4(transformed, 1.0);
+        
+        #ifdef USE_BATCHING
+          distanceCheckPos = batchingMatrix * distanceCheckPos;
+        #endif
 
-          #ifdef USE_INSTANCING
+        #ifdef USE_INSTANCING
+          distanceCheckPos = instanceMatrix * distanceCheckPos;
+        #endif
+        
+        distanceCheckPos = modelMatrix * distanceCheckPos;
 
-            distanceCheckPos = instanceMatrix * distanceCheckPos;
+        vec3 delta = distanceCheckPos.xyz - cameraPosition;           
+        float dist2 = dot(delta, delta);                              
+        float lodClose  = animLodDistance.x * animLodDistance.x;              
+        float lodFar  = animLodDistance.y * animLodDistance.y;              
+        
+        // Get frame data from texture
+        float finalInstanceIndex = unitIndex * instancesAmount + instanceIndex;
+        float textureHeight = float(textureSize(instanceManageTexture, 0).y);
+        vec3 instanceData = getInstanceData(finalInstanceIndex, textureHeight);
+        
+        if (dist2 >= lodFar) {
+            // far – 1 bone, no interpolation
+            transformed = skinVertexFar(vec4(transformed, 1.0), instanceData.x, unitIndex).xyz;
+        } else if (dist2 >= lodClose) {
+            // mid – 2 bones, interpolated
+            transformed = skinVertexMiddle(vec4(transformed, 1.0), instanceData.x, instanceData.y, instanceData.z, unitIndex).xyz;
+        } else {
+            // close – 4 bones, interpolated
+            transformed = skinVertexClose(vec4(transformed, 1.0), instanceData.x, instanceData.y, instanceData.z, unitIndex).xyz;
+        }
 
-          #endif
-          
-          distanceCheckPos = modelMatrix * distanceCheckPos;
+        vUv = uv;
+        vMapIndex = mapIndex;
 
-          vec3 delta = distanceCheckPos.xyz - cameraPosition;           
-          float dist2 = dot(delta, delta);                              
-          float lodClose  = animLodDistance.x * animLodDistance.x;              
-          float lodFar  = animLodDistance.y * animLodDistance.y;              
-          
-          // Get frame data from texture
-          float finalInstanceIndex = unitIndex * instancesAmount + instanceIndex;
-          float textureHeight = float(textureSize(instanceManageTexture, 0).y);
-          vec3 instanceData = getInstanceData(finalInstanceIndex, textureHeight);
-          
-          if (dist2 >= lodFar) {
-              // far – 1 bone, no interpolation
-              transformed = skinVertexFar(vec4(transformed, 1.0), instanceData.x, unitIndex).xyz;
-          } else if (dist2 >= lodClose) {
-              // mid – 2 bones, interpolated
-              transformed = skinVertexMiddle(vec4(transformed, 1.0), instanceData.x, instanceData.y, instanceData.z, unitIndex).xyz;
-          } else {
-              // close – 4 bones, interpolated
-              transformed = skinVertexClose(vec4(transformed, 1.0), instanceData.x, instanceData.y, instanceData.z, unitIndex).xyz;
-          }
-
-          vUv = uv;
-          vMapIndex = mapIndex;
-
-          #include <project_vertex> 
+        #include <project_vertex> 
       `
       );
 

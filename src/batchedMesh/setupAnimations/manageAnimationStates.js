@@ -2,6 +2,8 @@ import * as THREE from "three";
 import lookAtCamera from "../behavior/lookAtCamera";
 import moveToCamera from "../behavior/moveToCamera";
 
+const dummyPosition = new THREE.Vector3();
+
 export function manageAnimationStates(
   scene,
   camera,
@@ -27,6 +29,9 @@ export function manageAnimationStates(
     const unitSrc = soldierSrc[currentCount % soldierSrc.length];
     audioSrc.soldierAttack.count = (currentCount + 1) % soldierSrc.length;
 
+    const unitPosition = dummyPosition.setFromMatrixPosition(e.matrix);
+
+    unitSrc.position.copy(unitPosition);
     unitSrc.stop();
     unitSrc.play();
   });
@@ -124,8 +129,6 @@ export function manageAnimationStates(
     const unitSrc = mutantSrc[currentCount % mutantSrc.length];
     audioSrc.mutantAttack.count = (currentCount + 1) % mutantSrc.length;
 
-    unitSrc.setPlaybackRate(1.5);
-    unitSrc.setVolume(8.0);
     unitSrc.stop();
     unitSrc.play();
   });
@@ -214,6 +217,17 @@ export function manageAnimationStates(
   const zombieOffset = new THREE.Vector3(225, 0, -20).applyQuaternion(
     camera.quaternion
   );
+
+  const { src: zombieSrc, count: zombieCount } = audioSrc.zombieAttack;
+
+  material.createEvent("zombie", "zombiePunch", 3, (e) => {
+    const currentCount = audioSrc.zombieAttack.count;
+    const unitSrc = zombieSrc[currentCount % zombieSrc.length];
+    audioSrc.zombieAttack.count = (currentCount + 1) % zombieSrc.length;
+
+    unitSrc.stop();
+    unitSrc.play();
+  });
 
   material.setDistanceState(
     "zombie",
