@@ -184,10 +184,5 @@ export async function createEnemies(
     audioSources
   );
 
-  // Temp
-  scene.userData.enemies = batchedEnemies;
-  scene.userData.material = material;
-  scene.userData.sound = audioSources;
-
   return { batchedEnemies };
 }

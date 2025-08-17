@@ -6,15 +6,18 @@
 
 ---
 
+## [Demo online](https://guestgd.github.io/threeSBML/)
+
 ## 📖 Table of Contents
 
 - [Features](#-features)
+- [Demo installation](#-demo-installation)
 - [Quick Start](#-quick-start)
 - [How to import animations](#-how-to-import-animations)
 - [Material available methods](#-material-methods)
 - [Batched mesh available methods](#-batched-mesh-methods)
 - [Usage Examples](#-usage-examples)
-- [Demo installation](#-demo-installation)
+- [Limits](#-limits)
 
 ---
 
@@ -26,9 +29,18 @@
 - Animation LOD - set distance threshold to make animation simpler reducing gpu work
 - Geometry LOD - set distance threshold to use simpler geometry seamlessly while preserving a current animation frame
 - Use texture arrays to set textures for each unit type inside a shader efficiently
-- One material supports up to 7 unit types with any amount of instances for each (browser available RAM is a limit)
+- One material supports up to 10 unit types with any amount of instances for each (browser available RAM is a limit)
 
 ---
+
+## 📤 Demo installation
+
+```bash
+git clone https://github.com/GuestGD/threeSBML.git
+cd threeSBML
+npm install
+npx vite --host
+```
 
 ## 🏁 Quick Start
 
@@ -401,11 +413,8 @@ unitMoveTowards(
 
 # [⤴️](#-table-of-contents)
 
-## 📤 Demo installation
+## 📤 Limits
 
-```bash
-git clone https://github.com/GuestGD/threeSBML.git
-cd threeSBML
-npm install
-npx vite --host
-```
+- Up to 10 animated unit types per one material. Every unit type uses it's own separate Data texture to keep animation frames. Data array texture is not used due to not so wide support of Webgl extensions required for 32 bits Data array texture. One Data texture could be used to keep frames of many units animations also - this way it's possible to animate hundreds of unit types but it gonna be a nightmare for debugging and managing
+- 16384 is a total limit of all units instances you can control with one material
+- 16384 is also a max total amount of frames every single unit can have
