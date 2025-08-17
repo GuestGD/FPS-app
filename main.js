@@ -11,12 +11,8 @@ const { scene, camera, renderer, batchedEnemies } = await setupScene();
 
 const inspector = new DebugInspector(renderer, 12);
 
-let lastLogTime = 0;
-
 function animate() {
   requestAnimationFrame(animate);
-
-  const start = performance.now();
 
   const delta = clock.getDelta();
 
@@ -32,13 +28,6 @@ function animate() {
   }
 
   renderer.render(scene, camera);
-
-  const end = performance.now();
-
-  if (end - lastLogTime >= 1000) {
-    console.log(end - start);
-    lastLogTime = end;
-  }
 }
 
 animate();
